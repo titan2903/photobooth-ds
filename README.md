@@ -65,3 +65,9 @@ The optimized production bundle will be generated in `dist/`.
 
 ## Reverse Engineering Documentation
 See [`REVERSE_ENGINEERING_REPORT.md`](./REVERSE_ENGINEERING_REPORT.md) for detailed mathematical formulas, reverse-engineered dimensions, and file-by-file analysis of the original target app.
+
+---
+
+## License
+Distributed under the [MIT License](LICENSE).
+
