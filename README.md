@@ -1,9 +1,6 @@
 # Photobooth Studio (Modern Rebuild)
 
 A high-performance, ad-free, 100% client-side photobooth web application built with **React 18**, **TypeScript**, **Vite**, and **Tailwind CSS**.
-
-Reverse engineered from [photobooth-io.cc](https://photobooth-io.cc/) using REA (*Reverse Engineer Anything*) to reproduce exact photo strip layouts, canvas shaders, and camera workflows without third-party trackers or ads.
-
 ---
 
 ## Features
