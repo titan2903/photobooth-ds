@@ -292,3 +292,23 @@
 .per-photo-edit-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: 10px; color: var(--studio-400); }
 .per-photo-edit-actions button { color: var(--studio-strong); text-decoration: underline; cursor: pointer; }
 .per-photo-editor button:focus-visible { outline: 2px solid #c96687; outline-offset: 3px; }
+
+.gif-export-panel { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--studio-800); }
+.gif-export-panel h3 { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--studio-strong); font-weight: 700; }
+.gif-export-panel > p { color: var(--studio-400); font-size: 11px; line-height: 1.7; margin-top: 9px; }
+.gif-export-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0 10px; }
+.gif-export-options label { color: var(--studio-400); font-size: 10px; }
+.gif-export-options select { display: block; width: 100%; margin-top: 6px; padding: 9px; border: 1px solid var(--studio-800); border-radius: 7px; background: var(--studio-950); color: var(--studio-strong); font-size: 11px; }
+.gif-export-panel > .gif-export-note { font-size: 10px; color: var(--studio-500); }
+.gif-export-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+.gif-export-actions > button, .gif-export-actions > a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 15px; border-radius: 8px; border: 1px solid var(--studio-700); font-size: 11px; cursor: pointer; color: var(--studio-strong); }
+.gif-export-actions > .gif-generate { color: white; background: #6659a3; border-color: #6659a3; }
+.gif-export-actions > a { background: var(--studio-800); }
+.gif-export-actions button:disabled { opacity: .5; cursor: wait; }
+.gif-export-panel progress { display: block; width: 100%; height: 7px; margin-top: 12px; accent-color: #9c8cde; }
+.gif-export-panel > .gif-export-error { color: #e36a7c; }
+.gif-export-preview { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px; margin-top: 16px; border-radius: 10px; background: var(--studio-950); }
+.gif-export-preview img { display: block; max-height: 330px; max-width: 100%; width: auto; height: auto; }
+.gif-export-preview span { font-size: 10px; color: var(--studio-400); }
+.gif-export-panel :is(button,a,select):focus-visible { outline: 2px solid #9c8cde; outline-offset: 3px; }
+@media(max-width: 400px) { .gif-export-options { grid-template-columns: 1fr; } }

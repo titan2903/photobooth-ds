@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { 
   Download, 
   Printer, 
@@ -15,6 +15,7 @@ import { renderPhotoStrip } from '../utils/canvasRenderer';
 import { FramePicker } from './FramePicker';
 import { FilterPicker } from './FilterPicker';
 import { AnimationPicker } from './AnimationPicker';
+import { GifExportPanel } from './GifExportPanel';
 import { FILTERS } from '../config/filters';
 import { FilterEffects } from './FilterEffects';
 import { HeadPhotoOverlay } from './HeadPhotoOverlay';
@@ -52,6 +53,12 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
   const [renderError, setRenderError] = useState<string | null>(null);
   const activeCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  const renderOptions=useMemo(()=>({
+    layout,
+    theme:selectedTheme.isCustom ? {...selectedTheme,bgValue:customHex,textColor:getContrastColor(customHex)} : selectedTheme,
+    photos:currentPhotos,caption,showDate,showTime,
+  }),[layout,selectedTheme,customHex,currentPhotos,caption,showDate,showTime]);
+
   // Trigger master canvas re-render
   const updateMasterRender = useCallback(async () => {
     const generation = ++renderGeneration.current;
@@ -60,24 +67,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
     activeCanvasRef.current = null;
     try {
       await document.fonts.ready;
-      const themeToUse: FrameTheme = selectedTheme.isCustom
-        ? {
-            id: 'custom', tier: 'standard',
-            name: 'Custom',
-            bgValue: customHex,
-            textColor: getContrastColor(customHex),
-            isCustom: true,
-          }
-        : selectedTheme;
-
-      const renderedCanvas = await renderPhotoStrip({
-        layout,
-        theme: themeToUse,
-        photos: currentPhotos,
-        caption,
-        showDate,
-        showTime,
-      });
+      const renderedCanvas = await renderPhotoStrip(renderOptions);
 
       if (generation !== renderGeneration.current) return;
       activeCanvasRef.current = renderedCanvas;
@@ -88,7 +78,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
     } finally {
       if (generation === renderGeneration.current) setIsRendering(false);
     }
-  }, [layout, currentPhotos, selectedTheme, customHex, caption, showDate, showTime]);
+  }, [renderOptions]);
 
   useEffect(() => {
     updateMasterRender();
@@ -282,6 +272,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
                 <span>Cetak</span>
               </button>
             </div>
+            <GifExportPanel options={renderOptions} disabled={isRendering || Boolean(renderError)} />
           </div>
 
           <FramePicker

@@ -128,12 +128,35 @@ export interface RenderStripOptions {
   showTime: boolean;
   dateStr?: string;
   timeStr?: string;
+  animationOffset?: number;
 }
 
 /**
  * Compiles the entire photo strip with high precision math matching the reverse-engineered formulas
  */
 export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTMLCanvasElement> {
+  const render = await preparePhotoStripRenderer(options);
+  return render();
+}
+
+export async function preparePhotoStripRenderer(options: RenderStripOptions) {
+  const entries = await Promise.all(options.photos.map(photo => new Promise<[string, HTMLImageElement]>((resolve,reject)=>{
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve([photo.dataUrl,image]);
+    image.onerror = () => reject(new Error('Foto tidak dapat dimuat.'));
+    image.src = photo.dataUrl;
+  })));
+  const images = new Map(entries);
+  return (photos = options.photos, animationOffset = options.animationOffset ?? 0) =>
+    renderPreparedPhotoStrip({...options,photos,animationOffset},photos.map(photo=>{
+      const image=images.get(photo.dataUrl);
+      if(!image)throw new Error('Foto berubah selama ekspor.');
+      return image;
+    }));
+}
+
+async function renderPreparedPhotoStrip(options:RenderStripOptions, loadedImages:HTMLImageElement[]):Promise<HTMLCanvasElement> {
   const {
     layout,
     theme,
@@ -143,6 +166,7 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
     showTime,
     dateStr,
     timeStr,
+    animationOffset = 0,
   } = options;
 
   const canvas = document.createElement('canvas');
@@ -157,19 +181,6 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
   // 1. Draw Background
   ctx.fillStyle = theme.bgValue;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // 2. Pre-load all photos into Image objects
-  const loadedImages: HTMLImageElement[] = await Promise.all(
-    photos.map((photo) => {
-      return new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => resolve(img);
-        img.onerror = (err) => reject(err);
-        img.src = photo.dataUrl;
-      });
-    })
-  );
 
   const { unit, windows } = getFrameGeometry(layout, theme);
   if (theme.design) {
@@ -199,7 +210,7 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
         const detected=await detectPhotoHeads(photo.dataUrl,loadedImages[index]);
         heads=projectHeadAnchors(detected,loadedImages[index].width,loadedImages[index].height,photoCanvas.width,photoCanvas.height);
       }
-      const artwork = createAnimationArtwork(animation, photoCanvas.width, photoCanvas.height, photo.animationTime, heads);
+      const artwork = createAnimationArtwork(animation, photoCanvas.width, photoCanvas.height, photo.animationTime + animationOffset, heads);
       const effectImage = await loadArtwork(artwork);
       photoContext.drawImage(effectImage, 0, 0);
     }

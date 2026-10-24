@@ -35,7 +35,7 @@ export const AnimationPicker: React.FC<AnimationPickerProps> = ({ settings, onCh
         <label htmlFor={`${controlId}-speed`}>Kecepatan <output>{settings.speed.toFixed(1)}×</output><input id={`${controlId}-speed`} type="range" min="0.5" max="2" step="0.1" value={settings.speed} onChange={event => onChange({...settings,speed:Number(event.target.value)})} /></label>
       </div>}
       <p className="animation-active" aria-live="polite"><strong>{active.name}</strong> · {active.description}</p>
-      <p className="animation-export-note">Aksesori muncul setelah wajah terdeteksi di kamera. PNG dan hasil cetak menyimpan efek sebagai gambar diam.</p>
+      <p className="animation-export-note">Aksesori muncul setelah wajah terdeteksi di kamera. Unduh GIF untuk efek bergerak. PNG dan hasil cetak menyimpan gambar diam.</p>
     </section>
   );
 };
