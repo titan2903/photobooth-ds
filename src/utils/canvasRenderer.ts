@@ -1,4 +1,4 @@
-import { AnimationSettings, FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
+import { CapturedPhoto, FrameTheme, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
 import { createAnimationArtwork } from './animatedEffects';
 import { isHeadAnimation } from '../config/animations';
@@ -122,10 +122,7 @@ export function drawGrain(ctx: CanvasRenderingContext2D, width: number, height: 
 export interface RenderStripOptions {
   layout: LayoutConfig;
   theme: FrameTheme;
-  photoDataUrls: string[];
-  filter: FilterId;
-  animation?: AnimationSettings;
-  animationTimes?: number[];
+  photos: CapturedPhoto[];
   caption: string;
   showDate: boolean;
   showTime: boolean;
@@ -140,10 +137,7 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
   const {
     layout,
     theme,
-    photoDataUrls,
-    filter,
-    animation,
-    animationTimes,
+    photos,
     caption,
     showDate,
     showTime,
@@ -166,13 +160,13 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
 
   // 2. Pre-load all photos into Image objects
   const loadedImages: HTMLImageElement[] = await Promise.all(
-    photoDataUrls.map((url) => {
+    photos.map((photo) => {
       return new Promise<HTMLImageElement>((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => resolve(img);
         img.onerror = (err) => reject(err);
-        img.src = url;
+        img.src = photo.dataUrl;
       });
     })
   );
@@ -182,9 +176,11 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
     const background = await loadArtwork(createFrameArtwork(layout, theme, 'background'));
     ctx.drawImage(background, 0, 0);
   }
-  const filterConfig = FILTERS[filter] || FILTERS.normal;
   for (let index = 0; index < Math.min(loadedImages.length, windows.length); index++) {
     const window = windows[index];
+    const photo=photos[index];
+    const filterConfig=FILTERS[photo.filter] || FILTERS.normal;
+    const animation=photo.animation;
     const photoCanvas = document.createElement('canvas');
     photoCanvas.width = Math.ceil(window.width);
     photoCanvas.height = Math.ceil(window.height);
@@ -200,10 +196,10 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
       let heads;
       if (isHeadAnimation(animation.id)) {
         const {detectPhotoHeads}=await import('./headTracking');
-        const detected=await detectPhotoHeads(photoDataUrls[index],loadedImages[index]);
+        const detected=await detectPhotoHeads(photo.dataUrl,loadedImages[index]);
         heads=projectHeadAnchors(detected,loadedImages[index].width,loadedImages[index].height,photoCanvas.width,photoCanvas.height);
       }
-      const artwork = createAnimationArtwork(animation, photoCanvas.width, photoCanvas.height, animationTimes?.[index] ?? 2.4 + index * .35, heads);
+      const artwork = createAnimationArtwork(animation, photoCanvas.width, photoCanvas.height, photo.animationTime, heads);
       const effectImage = await loadArtwork(artwork);
       photoContext.drawImage(effectImage, 0, 0);
     }

@@ -1,4 +1,6 @@
 import { AnimationSettings, HeadAnchor } from '../types/photobooth';
+import { FACE_EFFECT_ANCHORS, isFacialAnimation } from '../config/animations';
+import { createFaceAccessoryArtwork } from './faceAccessories';
 
 const fraction = (value: number) => value - Math.floor(value);
 const random = (seed: number) => fraction(Math.sin(seed * 127.1 + 311.7) * 43758.5453);
@@ -12,13 +14,33 @@ export function createAnimationArtwork(settings: AnimationSettings, width: numbe
   const h = height / width * w;
   const time = (Number.isFinite(timeSeconds) ? timeSeconds : 2.4) * bound(settings.speed, .5, 2);
   if (settings.id.startsWith('head-')) {
-    const anchors = heads ?? [{x:.5,y:.31,width:.32,angle:0}];
+    const anchors = heads ?? [{x:.5,y:.15,width:.32,angle:0,eyes:{x:.5,y:.4},nose:{x:.5,y:.44},mouth:{x:.5,y:.52},chin:{x:.5,y:.67}}];
     const ornaments = anchors.filter(head=>Number.isFinite(head.x+head.y+head.width+head.angle) && head.width>0).map(head=>{
       const scale = head.width*w/180 * (.8+bound(settings.intensity,.3,1.5)*.2) * (settings.id === 'head-bunny' ? .64 : 1);
-      const y = Math.max((settings.id === 'head-bunny' ? 128 : 82)*scale,head.y*h);
+      const facial = isFacialAnimation(settings.id);
+      const mouth = head.mouth ?? {x:head.x,y:head.y+head.width*w/h*.92};
+      const nose = head.nose ?? {x:head.x,y:mouth.y-head.width*w/h*.2};
+      const eyes=head.eyes ?? {x:head.x,y:nose.y-head.width*w/h*.23};
+      const anchor=FACE_EFFECT_ANCHORS[settings.id];
+      const facePosition = anchor==='eyes' ? eyes : anchor==='nose' ? nose : anchor==='cheeks' ? {x:nose.x,y:nose.y*.4+mouth.y*.6} : anchor==='upper-lip' ? {x:nose.x*.35+mouth.x*.65,y:nose.y*.35+mouth.y*.65} : mouth;
+      const x = facial ? facePosition.x*w : head.x*w;
+      const clearance = settings.id === 'head-bunny' ? 128 : settings.id === 'head-hat' ? 108 : settings.id === 'head-cowboy' ? 95 : 82;
+      const y = facial ? facePosition.y*h : Math.max(clearance*scale,head.y*h);
       const bob = Math.sin(time*2)*3;
-      let art = '';
+      let art = createFaceAccessoryArtwork(settings.id,time);
       switch(settings.id){
+        case 'head-mustache':
+          art=`<path d="M0-5C-17-24-33-17-47-5C-64 9-74 7-82-8C-87 15-69 30-47 24C-29 20-16 9 0 6C16 9 29 20 47 24C69 30 87 15 82-8C74 7 64 9 47-5C33-17 17-24 0-5Z" fill="#35251f" stroke="#654735" stroke-width="2"/><path d="M-58 15Q-34 7-17-4M17-4Q34 7 58 15" stroke="#805d43" stroke-width="2" fill="none" stroke-linecap="round"/>`;
+          break;
+        case 'head-beard':
+          art=`<path d="M-84-26C-92 26-59 98 0 116C59 98 92 26 84-26L62-11Q60 28 33 12Q0 35-33 12Q-60 28-62-11Z" fill="#483025" stroke="#6c4a33" stroke-width="3"/><path d="M-67 17Q-60 54-25 81M67 17Q60 54 25 81M-38 38Q-32 69-8 97M38 38Q32 69 8 97M0 44V101" fill="none" stroke="#81583c" stroke-width="3" stroke-linecap="round"/>`;
+          break;
+        case 'head-hat':
+          art=`<ellipse cy="4" rx="125" ry="23" fill="#263344" stroke="#91a1b4" stroke-width="3"/><path d="M-78-2L-65-96Q-39-111 0-91Q39-111 65-96L78-2Z" fill="#45566a" stroke="#91a1b4" stroke-width="3"/><path d="M-73-22Q0-9 73-22L78-2Q0 13-78-2Z" fill="#252334"/><path d="M-49-87Q-25-92 0-75Q25-92 49-87" fill="none" stroke="#7e8fa3" stroke-width="3"/><path d="M-113 9Q0 29 113 9" fill="none" stroke="#667b91" stroke-width="2"/>`;
+          break;
+        case 'head-cowboy':
+          art=`<path d="M-139-8Q-124 33-56 14Q0-1 56 14Q124 33 139-8Q145 46 83 42Q0 19-83 42Q-145 46-139-8Z" fill="#ad7841" stroke="#f1cf94" stroke-width="3"/><path d="M-76 6L-63-68Q-52-102-23-78Q0-60 23-78Q52-102 63-68L76 6Q0 30-76 6Z" fill="#c69559" stroke="#f1cf94" stroke-width="3"/><path d="M-71-14Q0 7 71-14L76 6Q0 30-76 6Z" fill="#67402a"/><path d="M-57-66Q-27-84 0-55Q27-84 57-66" fill="none" stroke="#a36c3d" stroke-width="3"/><rect x="-13" y="-9" width="26" height="20" rx="4" fill="#dbb663" stroke="#f4dc9c" stroke-width="3"/><rect x="-6" y="-4" width="12" height="10" rx="1" fill="#67402a"/>`;
+          break;
         case 'head-crown':
           art=`<path d="M-86 0L-100-64-52-37 0-89 52-37 100-64 86 0Z" fill="#f7ca52" stroke="#fff0ad" stroke-width="4" stroke-linejoin="round"/><path d="M-85-5H85V11H-85Z" fill="#d99c2c" stroke="#fff0ad" stroke-width="3"/><path d="M0-65L12-44 0-23-12-44Z" fill="#e9799d"/><circle cx="-53" cy="-23" r="7" fill="#9ddbe5"/><circle cx="53" cy="-23" r="7" fill="#9ddbe5"/>${sparkle('#fff6ce',7)}`;
           break;
@@ -38,7 +60,7 @@ export function createAnimationArtwork(settings: AnimationSettings, width: numbe
           art=[-1,1].map(side=>`<g transform="translate(${side*53} 3) rotate(${side*10+Math.sin(time*2+side)*4})"><ellipse cy="-55" rx="23" ry="64" fill="#f5eefa" stroke="#fff" stroke-width="3"/><ellipse cy="-58" rx="11" ry="45" fill="#edb6ce"/></g>`).join('')+`<path d="M-97 14Q0-13 97 14" fill="none" stroke="#f5eefa" stroke-width="9"/>`;
           break;
       }
-      return `<g transform="translate(${head.x*w} ${y}) rotate(${head.angle+Math.sin(time*1.5)*1.5}) scale(${scale})">${art}</g>`;
+      return `<g transform="translate(${x} ${y}) rotate(${head.angle+(facial || settings.id === 'head-hat' || settings.id === 'head-cowboy' ? 0 : Math.sin(time*1.5)*1.5)}) scale(${scale})">${art}</g>`;
     }).join('');
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${w} ${h}" fill="none">${ornaments}</svg>`;
   }

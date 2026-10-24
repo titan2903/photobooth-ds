@@ -8,7 +8,7 @@ import {
   ArrowRight,
   AlertCircle 
 } from 'lucide-react';
-import { AnimationSettings, FilterId, LayoutConfig } from '../types/photobooth';
+import { AnimationSettings, CapturedPhoto, FilterId, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
 import { FilterPicker } from './FilterPicker';
 import { FilterEffects } from './FilterEffects';
@@ -18,6 +18,7 @@ import { HeadPhotoOverlay } from './HeadPhotoOverlay';
 import { useHeadTracking } from '../hooks/useHeadTracking';
 import { isHeadAnimation } from '../config/animations';
 import { useCamera } from '../hooks/useCamera';
+import { createCapturedPhoto } from '../utils/photoSession';
 import { playCountdownBeep, playShutterSound } from '../utils/audio';
 
 interface CaptureStudioProps {
@@ -26,7 +27,7 @@ interface CaptureStudioProps {
   animation: AnimationSettings;
   onAnimationChange: (animation: AnimationSettings) => void;
   onFilterChange: (filter: FilterId) => void;
-  onPhotosComplete: (photos: string[], times: number[]) => void;
+  onPhotosComplete: (photos: CapturedPhoto[]) => void;
   onBackToLayout: () => void;
 }
 
@@ -55,12 +56,14 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
   const headEffect = isHeadAnimation(animation.id);
   const tracking = useHeadTracking(videoRef, headEffect && isReady);
 
-  const [animationTimes, setAnimationTimes] = useState<number[]>([]);
-  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const [capturedPhotos, setCapturedPhotos] = useState<CapturedPhoto[]>([]);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(3); // 3 or 5
   const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
   const [currentCount, setCurrentCount] = useState<number | null>(null);
   const [showFlash, setShowFlash] = useState<boolean>(false);
+
+  const effectsRef = useRef({filter:selectedFilter,animation});
+  useEffect(()=>{effectsRef.current={filter:selectedFilter,animation};},[selectedFilter,animation]);
 
   const countdownIntervalRef = useRef<number | null>(null);
 
@@ -87,13 +90,11 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
     const frameData = captureFrame(1000, 1250);
     if (frameData) {
       const motionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      setAnimationTimes(prev => [...prev, motionReduced ? 2.4 : performance.now()/1000]);
-      setCapturedPhotos((prev) => {
-        const next = [...prev, frameData];
-        return next;
-      });
+      const effects=effectsRef.current;
+      const photo=createCapturedPhoto(frameData,effects.filter,effects.animation,motionReduced ? 2.4 : performance.now()/1000);
+      setCapturedPhotos(prev => prev.length < layout.photoCount ? [...prev,photo] : prev);
     }
-  }, [captureFrame]);
+  }, [captureFrame,layout.photoCount]);
 
   // Trigger countdown then snapshot
   const startCountdown = useCallback(() => {
@@ -129,13 +130,11 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
   // Retake last photo
   const retakeLast = () => {
     setCapturedPhotos((prev) => prev.slice(0, prev.length - 1));
-    setAnimationTimes(prev => prev.slice(0,-1));
   };
 
   // Retake all photos
   const retakeAll = () => {
     setCapturedPhotos([]);
-    setAnimationTimes([]);
   };
 
   const activeFilterConfig = FILTERS[selectedFilter] || FILTERS.normal;
@@ -276,7 +275,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                 </button>
               ) : (
                 <button
-                  onClick={() => onPhotosComplete(capturedPhotos, animationTimes)}
+                  onClick={() => onPhotosComplete(capturedPhotos)}
                   className="flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-heading font-bold shadow-lg shadow-emerald-500/30 transition-transform active:scale-95"
                 >
                   <Check className="w-5 h-5" />
@@ -293,7 +292,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
             {tracking.status === 'error' && <button type="button" onClick={tracking.retry}>Coba lagi</button>}
           </div>}
           <AnimationPicker settings={animation} onChange={onAnimationChange} />
-          <FilterPicker selectedFilter={selectedFilter} onSelect={onFilterChange} previewPhoto={capturedPhotos[0]} compact />
+          <FilterPicker selectedFilter={selectedFilter} onSelect={onFilterChange} previewPhoto={capturedPhotos[0]?.dataUrl} compact />
         </div>
 
         {/* Right Strip Queue (1 col) */}
@@ -316,6 +315,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
           <div className="flex flex-col gap-2.5">
             {Array.from({ length: layout.photoCount }).map((_, idx) => {
               const photo = capturedPhotos[idx];
+              const photoFilter=photo ? FILTERS[photo.filter] : activeFilterConfig;
               return (
                 <div
                   key={idx}
@@ -324,13 +324,14 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                   {photo ? (
                     <>
                       <img
-                        src={photo}
+                        src={photo.dataUrl}
                         alt={`Pose ${idx + 1}`}
-                        style={{ filter: activeFilterConfig.cssFilter }}
+                        style={{ filter: photoFilter.cssFilter }}
                         className="w-full h-full object-cover"
                       />
-                      <FilterEffects filter={activeFilterConfig} />
-                      <HeadPhotoOverlay photo={photo} settings={animation} time={animationTimes[idx] ?? 2.4} />
+                      <FilterEffects filter={photoFilter} />
+                      <HeadPhotoOverlay photo={photo.dataUrl} settings={photo.animation} time={photo.animationTime} />
+                      <span className="captured-photo-filter">{photoFilter.name}</span>
                       {idx === capturedPhotos.length - 1 && (
                         <button
                           onClick={retakeLast}
@@ -355,7 +356,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
 
           {isFinished && (
             <button
-              onClick={() => onPhotosComplete(capturedPhotos, animationTimes)}
+              onClick={() => onPhotosComplete(capturedPhotos)}
               className="mt-2 w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-heading font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 transition-transform active:scale-95"
             >
               <span>Lanjut ({capturedPhotos.length}/{layout.photoCount})</span>

@@ -10,19 +10,20 @@ import {
   Copy
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { AnimationSettings, FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
+import { CapturedPhoto, FrameTheme, LayoutConfig } from '../types/photobooth';
 import { renderPhotoStrip } from '../utils/canvasRenderer';
 import { FramePicker } from './FramePicker';
 import { FilterPicker } from './FilterPicker';
 import { AnimationPicker } from './AnimationPicker';
+import { FILTERS } from '../config/filters';
+import { FilterEffects } from './FilterEffects';
+import { HeadPhotoOverlay } from './HeadPhotoOverlay';
+import { rotatePhotos, updatePhotoEffects } from '../utils/photoSession';
 
 interface CustomizeStudioProps {
   layout: LayoutConfig;
-  photos: string[];
-  initialFilter: FilterId;
+  photos: CapturedPhoto[];
   initialTheme: FrameTheme;
-  initialAnimation: AnimationSettings;
-  animationTimes: number[];
   onBackToCapture: () => void;
   onNewSession: () => void;
 }
@@ -30,19 +31,15 @@ interface CustomizeStudioProps {
 export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
   layout,
   photos,
-  initialFilter,
   initialTheme,
-  initialAnimation,
-  animationTimes,
   onBackToCapture,
   onNewSession,
 }) => {
-  const [currentAnimationTimes, setCurrentAnimationTimes] = useState(animationTimes);
-  const [currentPhotos, setCurrentPhotos] = useState<string[]>(photos);
+  const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>(photos);
   const [selectedTheme, setSelectedTheme] = useState<FrameTheme>(initialTheme);
   const [customHex, setCustomHex] = useState<string>(initialTheme.bgValue);
-  const [animation, setAnimation] = useState(initialAnimation);
-  const [selectedFilter, setSelectedFilter] = useState<FilterId>(initialFilter);
+  const [selectedPhotoId,setSelectedPhotoId]=useState(photos[0]?.id);
+  const activePhoto=currentPhotos.find(photo=>photo.id===selectedPhotoId) ?? currentPhotos[0];
   const [caption, setCaption] = useState<string>('PHOTOBOOTH STUDIO');
   const [showDate, setShowDate] = useState<boolean>(true);
   const [showTime, setShowTime] = useState<boolean>(true);
@@ -76,10 +73,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
       const renderedCanvas = await renderPhotoStrip({
         layout,
         theme: themeToUse,
-        photoDataUrls: currentPhotos,
-        filter: selectedFilter,
-        animation,
-        animationTimes: currentAnimationTimes,
+        photos: currentPhotos,
         caption,
         showDate,
         showTime,
@@ -94,7 +88,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
     } finally {
       if (generation === renderGeneration.current) setIsRendering(false);
     }
-  }, [layout, currentPhotos, selectedTheme, customHex, selectedFilter, caption, showDate, showTime, animation, currentAnimationTimes]);
+  }, [layout, currentPhotos, selectedTheme, customHex, caption, showDate, showTime]);
 
   useEffect(() => {
     updateMasterRender();
@@ -175,11 +169,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
   // Shuffle / rotate photo order
   const handleRotateOrder = () => {
     if (currentPhotos.length <= 1) return;
-    setCurrentAnimationTimes(prev => prev.length > 1 ? [...prev.slice(1), prev[0]] : prev);
-    setCurrentPhotos((prev) => {
-      const [first, ...rest] = prev;
-      return [...rest, first];
-    });
+    setCurrentPhotos(rotatePhotos);
   };
 
   return (
@@ -305,8 +295,21 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
             }}
           />
 
-          <AnimationPicker settings={animation} onChange={setAnimation} />
-          <FilterPicker selectedFilter={selectedFilter} onSelect={setSelectedFilter} previewPhoto={currentPhotos[0]} />
+          {activePhoto && <>
+            <section className="per-photo-editor" aria-label="Pilih foto untuk mengedit efek">
+              <h3>Edit filter per foto</h3>
+              <p>Pilih foto yang ingin diubah. Foto lain tetap memakai efek saat diambil.</p>
+              <div className="per-photo-options" role="group" aria-label="Foto yang diedit">
+                {currentPhotos.map((photo,index)=><button type="button" key={photo.id} aria-pressed={activePhoto.id===photo.id} className={activePhoto.id===photo.id ? 'is-active' : ''} onClick={()=>setSelectedPhotoId(photo.id)}>
+                  <span className="per-photo-thumbnail"><img src={photo.dataUrl} alt={`Pose ${index+1}`} style={{filter:FILTERS[photo.filter].cssFilter}} /><FilterEffects filter={FILTERS[photo.filter]} /><HeadPhotoOverlay photo={photo.dataUrl} settings={photo.animation} time={photo.animationTime} /></span>
+                  <span>Foto {index+1}</span><small>{FILTERS[photo.filter].name}</small>
+                </button>)}
+              </div>
+              <div className="per-photo-edit-actions"><span role="status">Mengedit Foto {currentPhotos.indexOf(activePhoto)+1}</span><button type="button" onClick={()=>setCurrentPhotos(prev=>prev.map(photo=>({...photo,filter:activePhoto.filter,animation:{...activePhoto.animation}})))}>Terapkan efek ke semua foto</button></div>
+            </section>
+            <AnimationPicker settings={activePhoto.animation} onChange={animation=>setCurrentPhotos(prev=>updatePhotoEffects(prev,activePhoto.id,{animation}))} />
+            <FilterPicker selectedFilter={activePhoto.filter} onSelect={filter=>setCurrentPhotos(prev=>updatePhotoEffects(prev,activePhoto.id,{filter}))} previewPhoto={activePhoto.dataUrl} />
+          </>}
 
           {/* Typography & Caption Settings */}
           <div className="bg-studio-900/70 border border-studio-800 rounded-2xl p-5">

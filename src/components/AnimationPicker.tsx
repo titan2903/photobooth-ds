@@ -1,6 +1,6 @@
 import React, { useId, useMemo, useState } from 'react';
 import { Check, Clapperboard, CircleOff } from 'lucide-react';
-import { ANIMATIONS, isHeadAnimation } from '../config/animations';
+import { ANIMATIONS, isHeadAnimation, isFacialAnimation } from '../config/animations';
 import { AnimationSettings } from '../types/photobooth';
 import { createAnimationArtwork } from '../utils/animatedEffects';
 import { svgDataUrl } from '../utils/frameArtwork';
@@ -9,17 +9,18 @@ import { AnimatedOverlay } from './AnimatedOverlay';
 interface AnimationPickerProps { settings: AnimationSettings; onChange: (settings: AnimationSettings) => void }
 export const AnimationPicker: React.FC<AnimationPickerProps> = ({ settings, onChange }) => {
   const controlId = useId();
-  const [group,setGroup]=useState<'head'|'scene'>(settings.id === 'none' || isHeadAnimation(settings.id) ? 'head' : 'scene');
-  const visible=ANIMATIONS.filter(item=>item.id==='none' || (group==='head' ? isHeadAnimation(item.id) : !isHeadAnimation(item.id)));
+  const [group,setGroup]=useState<'head'|'face'|'scene'>(isFacialAnimation(settings.id) ? 'face' : settings.id === 'none' || isHeadAnimation(settings.id) ? 'head' : 'scene');
+  const visible=ANIMATIONS.filter(item=>item.id==='none' || (group==='face' ? isFacialAnimation(item.id) : group==='head' ? isHeadAnimation(item.id) && !isFacialAnimation(item.id) : !isHeadAnimation(item.id)));
   const isHead=isHeadAnimation(settings.id);
   const thumbnails = useMemo(() => new Map(ANIMATIONS.filter(item => item.id !== 'none').map(item => [item.id,svgDataUrl(createAnimationArtwork({id:item.id,intensity:1,speed:1},200,140,2.4))])),[]);
   const active = ANIMATIONS.find(item => item.id === settings.id)!;
   return (
-    <section className="animation-picker" aria-label="Efek kepala dan animasi kamera">
-      <div className="animation-picker-heading"><h3><Clapperboard size={16} /> Efek Kepala & Gerak</h3><span>{group === 'head' ? '6 efek kepala' : '8 efek suasana'}</span></div>
-      <p className="animation-picker-intro">Mahkota, halo, dan aksesori mengikuti kepala secara otomatis. Bisa digabungkan dengan semua filter warna.</p>
+    <section className="animation-picker" aria-label="Efek kepala, wajah, dan animasi kamera">
+      <div className="animation-picker-heading"><h3><Clapperboard size={16} /> Efek Kepala & Wajah</h3><span>{visible.length-1} {group === 'head' ? 'efek kepala' : group === 'face' ? 'efek wajah' : 'efek suasana'}</span></div>
+      <p className="animation-picker-intro">Kumis, janggut, topi, dan aksesori mengikuti wajah secara otomatis. Bisa digabungkan dengan semua filter warna.</p>
       <div className="frame-tabs" role="group" aria-label="Jenis efek animasi">
         <button type="button" aria-pressed={group==='head'} className={group==='head' ? 'is-active' : ''} onClick={()=>setGroup('head')}>Di Atas Kepala</button>
+        <button type="button" aria-pressed={group==='face'} className={group==='face' ? 'is-active' : ''} onClick={()=>setGroup('face')}>Wajah</button>
         <button type="button" aria-pressed={group==='scene'} className={group==='scene' ? 'is-active' : ''} onClick={()=>setGroup('scene')}>Efek Suasana</button>
       </div>
       <div className="animation-picker-grid">{visible.map(item => <button type="button" key={item.id} onClick={() => onChange({...settings,id:item.id})} aria-pressed={settings.id === item.id} className={`animation-option ${settings.id === item.id ? 'is-selected' : ''}`} title={item.description}>
@@ -34,7 +35,7 @@ export const AnimationPicker: React.FC<AnimationPickerProps> = ({ settings, onCh
         <label htmlFor={`${controlId}-speed`}>Kecepatan <output>{settings.speed.toFixed(1)}×</output><input id={`${controlId}-speed`} type="range" min="0.5" max="2" step="0.1" value={settings.speed} onChange={event => onChange({...settings,speed:Number(event.target.value)})} /></label>
       </div>}
       <p className="animation-active" aria-live="polite"><strong>{active.name}</strong> · {active.description}</p>
-      <p className="animation-export-note">Efek kepala muncul setelah wajah terdeteksi di kamera. PNG dan hasil cetak menyimpan efek sebagai gambar diam.</p>
+      <p className="animation-export-note">Aksesori muncul setelah wajah terdeteksi di kamera. PNG dan hasil cetak menyimpan efek sebagai gambar diam.</p>
     </section>
   );
 };

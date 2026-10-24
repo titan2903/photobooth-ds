@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AnimationSettings, AppStep, FilterId, FrameTheme, LayoutId } from './types/photobooth';
+import { AnimationSettings, AppStep, CapturedPhoto, FilterId, FrameTheme, LayoutId } from './types/photobooth';
 import { LAYOUTS, DEFAULT_LAYOUT } from './config/layouts';
 import { DEFAULT_FILTER } from './config/filters';
 import { DEFAULT_ANIMATION } from './config/animations';
@@ -18,15 +18,13 @@ export const App: React.FC = () => {
   const [selectedFrame, setSelectedFrame] = useState<FrameTheme>(DEFAULT_THEME);
   const [selectedFilter, setSelectedFilter] = useState<FilterId>(DEFAULT_FILTER);
   const [animation, setAnimation] = useState<AnimationSettings>(DEFAULT_ANIMATION);
-  const [animationTimes, setAnimationTimes] = useState<number[]>([]);
-  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const [capturedPhotos, setCapturedPhotos] = useState<CapturedPhoto[]>([]);
 
   const activeLayout = LAYOUTS[selectedLayoutId];
 
   // Reset to initial layout selection
   const handleReset = () => {
     setCapturedPhotos([]);
-    setAnimationTimes([]);
     setStep('select-layout');
   };
 
@@ -54,8 +52,7 @@ export const App: React.FC = () => {
             animation={animation}
             onAnimationChange={setAnimation}
             onFilterChange={(f) => setSelectedFilter(f)}
-            onPhotosComplete={(photos, times) => {
-              setAnimationTimes(times);
+            onPhotosComplete={(photos) => {
               setCapturedPhotos(photos);
               setStep('customize');
             }}
@@ -67,10 +64,7 @@ export const App: React.FC = () => {
           <CustomizeStudio
             layout={activeLayout}
             photos={capturedPhotos}
-            initialFilter={selectedFilter}
             initialTheme={selectedFrame}
-            initialAnimation={animation}
-            animationTimes={animationTimes}
             onBackToCapture={() => setStep('capture')}
             onNewSession={handleReset}
           />

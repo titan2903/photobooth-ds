@@ -277,3 +277,18 @@
 .head-tracking-error .head-tracking-dot { background: #fb7185; }
 .head-tracking-status button { color: var(--studio-strong); text-decoration: underline; margin-left: auto; cursor: pointer; }
 .animation-option-preview > .head-effect-demo { position: absolute; inset: 0; opacity: .72; }
+
+.captured-photo-filter { position: absolute; left: 7px; bottom: 7px; padding: 3px 6px; border-radius: 5px; color: white; background: #0009; font-size: 9px; pointer-events: none; }
+.per-photo-editor { padding: 20px; border: 1px solid var(--studio-800); border-radius: 16px; background: var(--studio-900); }
+.per-photo-editor h3 { color: var(--studio-strong); font-size: 13px; font-weight: 700; }
+.per-photo-editor > p { color: var(--studio-400); font-size: 11px; line-height: 1.7; margin: 8px 0 14px; }
+.per-photo-options { display: flex; overflow-x: auto; gap: 10px; padding: 3px; }
+.per-photo-options button { flex: 0 0 80px; min-width: 0; border: 1px solid var(--studio-800); border-radius: 8px; padding: 4px; background: var(--studio-950); cursor: pointer; }
+.per-photo-options button.is-active { border-color: #c96687; box-shadow: 0 0 0 1px #c96687; }
+.per-photo-thumbnail { display: block; position: relative; aspect-ratio: 4/5; overflow: hidden; border-radius: 5px; }
+.per-photo-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+.per-photo-options button > span:not(.per-photo-thumbnail) { display: block; color: var(--studio-strong); font-size: 10px; padding: 6px 0 3px; }
+.per-photo-options small { display: block; color: var(--studio-400); font-size: 8px; line-height: 1.5; }
+.per-photo-edit-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-top: 16px; font-size: 10px; color: var(--studio-400); }
+.per-photo-edit-actions button { color: var(--studio-strong); text-decoration: underline; cursor: pointer; }
+.per-photo-editor button:focus-visible { outline: 2px solid #c96687; outline-offset: 3px; }

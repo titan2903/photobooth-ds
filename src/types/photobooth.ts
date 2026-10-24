@@ -61,11 +61,16 @@ export interface CapturedPhoto {
   dataUrl: string;
   timestamp: number;
   filter: FilterId;
+  animation: AnimationSettings;
+  animationTime: number;
 }
 
 export type AppStep = 'select-layout' | 'capture' | 'customize' | 'export';
 
-export type AnimationId = 'none' | 'hearts' | 'sparkles' | 'confetti' | 'bubbles' | 'petals' | 'snow' | 'shooting-stars' | 'neon-orbit' | 'head-crown' | 'head-halo' | 'head-hearts' | 'head-butterflies' | 'head-cat' | 'head-bunny';
+export type AnimationId = 'none' | 'hearts' | 'sparkles' | 'confetti' | 'bubbles' | 'petals' | 'snow' | 'shooting-stars' | 'neon-orbit' | 'head-crown' | 'head-halo' | 'head-hearts' | 'head-butterflies' | 'head-cat' | 'head-bunny' | 'head-mustache' | 'head-beard' | 'head-hat' | 'head-cowboy'
+  | 'head-glasses' | 'head-sunglasses' | 'head-heart-glasses' | 'head-blush'
+  | 'head-freckles' | 'head-clown' | 'head-cat-whiskers' | 'head-pirate'
+  | 'head-cyber-visor' | 'head-star-cheeks' | 'head-mustache-pencil' | 'head-goatee';
 export interface AnimationSettings {
   id: AnimationId;
   intensity: number;
@@ -73,4 +78,10 @@ export interface AnimationSettings {
 }
 
 /** Position and size normalized to the source image; angle is in degrees. */
-export interface HeadAnchor { x: number; y: number; width: number; angle: number }
+export interface HeadAnchor {
+  x: number; y: number; width: number; angle: number;
+  eyes?: { x: number; y: number };
+  nose?: { x: number; y: number };
+  mouth?: { x: number; y: number };
+  chin?: { x: number; y: number };
+}
