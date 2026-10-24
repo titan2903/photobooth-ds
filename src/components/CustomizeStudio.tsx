@@ -10,16 +10,19 @@ import {
   Copy
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
+import { AnimationSettings, FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
 import { renderPhotoStrip } from '../utils/canvasRenderer';
 import { FramePicker } from './FramePicker';
 import { FilterPicker } from './FilterPicker';
+import { AnimationPicker } from './AnimationPicker';
 
 interface CustomizeStudioProps {
   layout: LayoutConfig;
   photos: string[];
   initialFilter: FilterId;
   initialTheme: FrameTheme;
+  initialAnimation: AnimationSettings;
+  animationTimes: number[];
   onBackToCapture: () => void;
   onNewSession: () => void;
 }
@@ -29,12 +32,16 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
   photos,
   initialFilter,
   initialTheme,
+  initialAnimation,
+  animationTimes,
   onBackToCapture,
   onNewSession,
 }) => {
+  const [currentAnimationTimes, setCurrentAnimationTimes] = useState(animationTimes);
   const [currentPhotos, setCurrentPhotos] = useState<string[]>(photos);
   const [selectedTheme, setSelectedTheme] = useState<FrameTheme>(initialTheme);
   const [customHex, setCustomHex] = useState<string>(initialTheme.bgValue);
+  const [animation, setAnimation] = useState(initialAnimation);
   const [selectedFilter, setSelectedFilter] = useState<FilterId>(initialFilter);
   const [caption, setCaption] = useState<string>('PHOTOBOOTH STUDIO');
   const [showDate, setShowDate] = useState<boolean>(true);
@@ -71,6 +78,8 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
         theme: themeToUse,
         photoDataUrls: currentPhotos,
         filter: selectedFilter,
+        animation,
+        animationTimes: currentAnimationTimes,
         caption,
         showDate,
         showTime,
@@ -80,12 +89,12 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
       activeCanvasRef.current = renderedCanvas;
       setPreviewDataUrl(renderedCanvas.toDataURL('image/png'));
     } catch (err) {
-      if (generation === renderGeneration.current) setRenderError('Frame belum berhasil dirender. Pilih frame lagi untuk mencoba kembali.');
+      if (generation === renderGeneration.current) setRenderError('Foto atau efek belum berhasil dirender. Pilih efek lagi untuk mencoba kembali.');
       console.error('Rendering error:', err);
     } finally {
       if (generation === renderGeneration.current) setIsRendering(false);
     }
-  }, [layout, currentPhotos, selectedTheme, customHex, selectedFilter, caption, showDate, showTime]);
+  }, [layout, currentPhotos, selectedTheme, customHex, selectedFilter, caption, showDate, showTime, animation, currentAnimationTimes]);
 
   useEffect(() => {
     updateMasterRender();
@@ -166,6 +175,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
   // Shuffle / rotate photo order
   const handleRotateOrder = () => {
     if (currentPhotos.length <= 1) return;
+    setCurrentAnimationTimes(prev => prev.length > 1 ? [...prev.slice(1), prev[0]] : prev);
     setCurrentPhotos((prev) => {
       const [first, ...rest] = prev;
       return [...rest, first];
@@ -295,6 +305,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
             }}
           />
 
+          <AnimationPicker settings={animation} onChange={setAnimation} />
           <FilterPicker selectedFilter={selectedFilter} onSelect={setSelectedFilter} previewPhoto={currentPhotos[0]} />
 
           {/* Typography & Caption Settings */}

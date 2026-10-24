@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { AppStep, FilterId, FrameTheme, LayoutId } from './types/photobooth';
+import { AnimationSettings, AppStep, FilterId, FrameTheme, LayoutId } from './types/photobooth';
 import { LAYOUTS, DEFAULT_LAYOUT } from './config/layouts';
 import { DEFAULT_FILTER } from './config/filters';
+import { DEFAULT_ANIMATION } from './config/animations';
 import { DEFAULT_THEME } from './config/themes';
 import { Header } from './components/Header';
 import { LayoutSelector } from './components/LayoutSelector';
@@ -16,6 +17,8 @@ export const App: React.FC = () => {
   const [selectedLayoutId, setSelectedLayoutId] = useState<LayoutId>(DEFAULT_LAYOUT);
   const [selectedFrame, setSelectedFrame] = useState<FrameTheme>(DEFAULT_THEME);
   const [selectedFilter, setSelectedFilter] = useState<FilterId>(DEFAULT_FILTER);
+  const [animation, setAnimation] = useState<AnimationSettings>(DEFAULT_ANIMATION);
+  const [animationTimes, setAnimationTimes] = useState<number[]>([]);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
 
   const activeLayout = LAYOUTS[selectedLayoutId];
@@ -23,6 +26,7 @@ export const App: React.FC = () => {
   // Reset to initial layout selection
   const handleReset = () => {
     setCapturedPhotos([]);
+    setAnimationTimes([]);
     setStep('select-layout');
   };
 
@@ -47,8 +51,11 @@ export const App: React.FC = () => {
           <CaptureStudio
             layout={activeLayout}
             selectedFilter={selectedFilter}
+            animation={animation}
+            onAnimationChange={setAnimation}
             onFilterChange={(f) => setSelectedFilter(f)}
-            onPhotosComplete={(photos) => {
+            onPhotosComplete={(photos, times) => {
+              setAnimationTimes(times);
               setCapturedPhotos(photos);
               setStep('customize');
             }}
@@ -62,6 +69,8 @@ export const App: React.FC = () => {
             photos={capturedPhotos}
             initialFilter={selectedFilter}
             initialTheme={selectedFrame}
+            initialAnimation={animation}
+            animationTimes={animationTimes}
             onBackToCapture={() => setStep('capture')}
             onNewSession={handleReset}
           />

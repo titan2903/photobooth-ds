@@ -1,5 +1,8 @@
-import { FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
+import { AnimationSettings, FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
+import { createAnimationArtwork } from './animatedEffects';
+import { isHeadAnimation } from '../config/animations';
+import { projectHeadAnchors } from './headGeometry';
 import { createFrameArtwork, getFrameGeometry, svgDataUrl } from './frameArtwork';
 
 /**
@@ -121,6 +124,8 @@ export interface RenderStripOptions {
   theme: FrameTheme;
   photoDataUrls: string[];
   filter: FilterId;
+  animation?: AnimationSettings;
+  animationTimes?: number[];
   caption: string;
   showDate: boolean;
   showTime: boolean;
@@ -137,6 +142,8 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
     theme,
     photoDataUrls,
     filter,
+    animation,
+    animationTimes,
     caption,
     showDate,
     showTime,
@@ -189,6 +196,17 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
     if (filterConfig.hasScanlines) drawScanlines(photoContext, photoCanvas.width, photoCanvas.height);
     if (filterConfig.hasFilmScratches) drawFilmScratches(photoContext, photoCanvas.width, photoCanvas.height);
     if (filterConfig.hasGrain) drawGrain(photoContext, photoCanvas.width, photoCanvas.height);
+    if (animation && animation.id !== 'none') {
+      let heads;
+      if (isHeadAnimation(animation.id)) {
+        const {detectPhotoHeads}=await import('./headTracking');
+        const detected=await detectPhotoHeads(photoDataUrls[index],loadedImages[index]);
+        heads=projectHeadAnchors(detected,loadedImages[index].width,loadedImages[index].height,photoCanvas.width,photoCanvas.height);
+      }
+      const artwork = createAnimationArtwork(animation, photoCanvas.width, photoCanvas.height, animationTimes?.[index] ?? 2.4 + index * .35, heads);
+      const effectImage = await loadArtwork(artwork);
+      photoContext.drawImage(effectImage, 0, 0);
+    }
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(window.x, window.y, window.width, window.height, window.radius);

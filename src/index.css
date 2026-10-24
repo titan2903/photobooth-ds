@@ -243,3 +243,37 @@
 .photo-effect-grain { opacity: .19; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 @media(max-width: 700px) { .filter-picker-compact .filter-preview-grid { grid-template-columns: repeat(4,minmax(0,1fr)); } }
 @media(max-width: 420px) { .filter-preview-grid, .filter-picker-compact .filter-preview-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+
+/* Live motion effects share the SVG scene used for photo exports. */
+.animated-photo-overlay { position: absolute; inset: 0; display: block; overflow: hidden; pointer-events: none; }
+.animated-photo-overlay > svg { display: block; width: 100%; height: 100%; }
+.animation-picker { padding: 20px; background: var(--studio-900); border: 1px solid var(--studio-800); border-radius: 16px; }
+.animation-picker-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.animation-picker-heading h3 { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 700; color: var(--studio-strong); }
+.animation-picker-heading > span { font-size: 9px; padding: 4px 7px; border-radius: 5px; background: #202f36; color: #a9e3e5; white-space: nowrap; }
+.animation-picker-intro { font-size: 11px; color: var(--studio-400); line-height: 1.7; margin: 10px 0 16px; }
+.animation-picker-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
+.animation-option { min-width: 0; padding: 4px; border: 1px solid var(--studio-800); border-radius: 10px; background: var(--studio-950); cursor: pointer; }
+.animation-option:hover { border-color: var(--studio-500); }
+.animation-option.is-selected { border-color: #8b9bde; box-shadow: 0 0 0 1px #8b9bde; }
+.animation-option-preview { position: relative; display: flex; align-items: center; justify-content: center; height: 78px; overflow: hidden; border-radius: 6px; color: #d1d5e4; background: radial-gradient(ellipse at center,#343044,#171826); }
+.animation-option-preview > img { width: 100%; height: 100%; object-fit: cover; }
+.animation-option-name { display: block; padding: 8px 2px 5px; font-size: 10px; color: var(--studio-300); line-height: 1.4; }
+.animation-option-check { position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 18px; height: 18px; color: white; background: #596eb4; border-radius: 50%; }
+.animation-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 17px 0 5px; }
+.animation-controls label { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; font-size: 10px; color: var(--studio-400); }
+.animation-controls output { font-family: 'Space Grotesk',monospace; color: var(--studio-strong); }
+.animation-controls input { display: block; width: 100%; accent-color: #8596d6; cursor: pointer; }
+.animation-active { font-size: 11px; line-height: 1.7; margin-top: 13px; color: var(--studio-400); }
+.animation-active strong { color: var(--studio-strong); }
+.animation-export-note { font-size: 10px; line-height: 1.7; color: var(--studio-500); margin-top: 6px; }
+.animation-picker button:focus-visible, .animation-picker input:focus-visible { outline: 2px solid #8b9bde; outline-offset: 3px; }
+@media(min-width: 1024px) { .lg\:col-span-3 > .animation-picker .animation-picker-grid { grid-template-columns: repeat(5,minmax(0,1fr)); } }
+@media(max-width: 380px) { .animation-picker-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .animation-controls { grid-template-columns: 1fr; } }
+
+.head-tracking-status { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 13px; border-radius: 9px; border: 1px solid var(--studio-800); color: var(--studio-400); background: var(--studio-900); font-size: 11px; line-height: 1.7; }
+.head-tracking-dot { width: 6px; height: 6px; border-radius: 50%; background: #d9ac5c; flex-shrink: 0; }
+.head-tracking-tracking .head-tracking-dot { background: #34d399; }
+.head-tracking-error .head-tracking-dot { background: #fb7185; }
+.head-tracking-status button { color: var(--studio-strong); text-decoration: underline; margin-left: auto; cursor: pointer; }
+.animation-option-preview > .head-effect-demo { position: absolute; inset: 0; opacity: .72; }

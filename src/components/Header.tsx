@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ currentStep, onReset, theme, onT
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-heading font-extrabold tracking-tight text-lg text-studio-strong">
-                PHOTOBOOTH
+                PHOTOBOOTH DS
               </span>
               <span className="text-xs px-1.5 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold font-mono">
                 STUDIO

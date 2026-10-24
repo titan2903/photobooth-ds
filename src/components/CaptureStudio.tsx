@@ -8,24 +8,33 @@ import {
   ArrowRight,
   AlertCircle 
 } from 'lucide-react';
-import { FilterId, LayoutConfig } from '../types/photobooth';
+import { AnimationSettings, FilterId, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
 import { FilterPicker } from './FilterPicker';
 import { FilterEffects } from './FilterEffects';
+import { AnimationPicker } from './AnimationPicker';
+import { AnimatedOverlay } from './AnimatedOverlay';
+import { HeadPhotoOverlay } from './HeadPhotoOverlay';
+import { useHeadTracking } from '../hooks/useHeadTracking';
+import { isHeadAnimation } from '../config/animations';
 import { useCamera } from '../hooks/useCamera';
 import { playCountdownBeep, playShutterSound } from '../utils/audio';
 
 interface CaptureStudioProps {
   layout: LayoutConfig;
   selectedFilter: FilterId;
+  animation: AnimationSettings;
+  onAnimationChange: (animation: AnimationSettings) => void;
   onFilterChange: (filter: FilterId) => void;
-  onPhotosComplete: (photos: string[]) => void;
+  onPhotosComplete: (photos: string[], times: number[]) => void;
   onBackToLayout: () => void;
 }
 
 export const CaptureStudio: React.FC<CaptureStudioProps> = ({
   layout,
   selectedFilter,
+  animation,
+  onAnimationChange,
   onFilterChange,
   onPhotosComplete,
   onBackToLayout,
@@ -43,6 +52,10 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
     captureFrame,
   } = useCamera({ idealWidth: 1280, idealHeight: 960 });
 
+  const headEffect = isHeadAnimation(animation.id);
+  const tracking = useHeadTracking(videoRef, headEffect && isReady);
+
+  const [animationTimes, setAnimationTimes] = useState<number[]>([]);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [countdownSeconds, setCountdownSeconds] = useState<number>(3); // 3 or 5
   const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
@@ -73,6 +86,8 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
 
     const frameData = captureFrame(1000, 1250);
     if (frameData) {
+      const motionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      setAnimationTimes(prev => [...prev, motionReduced ? 2.4 : performance.now()/1000]);
       setCapturedPhotos((prev) => {
         const next = [...prev, frameData];
         return next;
@@ -114,11 +129,13 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
   // Retake last photo
   const retakeLast = () => {
     setCapturedPhotos((prev) => prev.slice(0, prev.length - 1));
+    setAnimationTimes(prev => prev.slice(0,-1));
   };
 
   // Retake all photos
   const retakeAll = () => {
     setCapturedPhotos([]);
+    setAnimationTimes([]);
   };
 
   const activeFilterConfig = FILTERS[selectedFilter] || FILTERS.normal;
@@ -158,6 +175,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
             />
 
             <FilterEffects filter={activeFilterConfig} />
+            <AnimatedOverlay settings={animation} heads={headEffect ? tracking.heads : undefined} sourceWidth={videoRef.current?.videoWidth} sourceHeight={videoRef.current?.videoHeight} mirrored={isMirrored} />
 
             {/* Error Message */}
             {error && (
@@ -258,7 +276,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                 </button>
               ) : (
                 <button
-                  onClick={() => onPhotosComplete(capturedPhotos)}
+                  onClick={() => onPhotosComplete(capturedPhotos, animationTimes)}
                   className="flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-heading font-bold shadow-lg shadow-emerald-500/30 transition-transform active:scale-95"
                 >
                   <Check className="w-5 h-5" />
@@ -269,6 +287,12 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
             </div>
           </div>
 
+          {headEffect && isReady && <div className={`head-tracking-status head-tracking-${tracking.status}`} role="status">
+            <span className="head-tracking-dot" />
+            {tracking.status === 'loading' ? 'Menyiapkan pelacakan kepala…' : tracking.status === 'tracking' ? `Efek mengikuti ${tracking.heads.length} wajah` : tracking.status === 'searching' ? 'Arahkan wajah ke kamera agar efek muncul di atas kepala.' : 'Pelacakan kepala belum tersedia. Coba muat ulang model.'}
+            {tracking.status === 'error' && <button type="button" onClick={tracking.retry}>Coba lagi</button>}
+          </div>}
+          <AnimationPicker settings={animation} onChange={onAnimationChange} />
           <FilterPicker selectedFilter={selectedFilter} onSelect={onFilterChange} previewPhoto={capturedPhotos[0]} compact />
         </div>
 
@@ -306,6 +330,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                         className="w-full h-full object-cover"
                       />
                       <FilterEffects filter={activeFilterConfig} />
+                      <HeadPhotoOverlay photo={photo} settings={animation} time={animationTimes[idx] ?? 2.4} />
                       {idx === capturedPhotos.length - 1 && (
                         <button
                           onClick={retakeLast}
@@ -330,7 +355,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
 
           {isFinished && (
             <button
-              onClick={() => onPhotosComplete(capturedPhotos)}
+              onClick={() => onPhotosComplete(capturedPhotos, animationTimes)}
               className="mt-2 w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-heading font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 transition-transform active:scale-95"
             >
               <span>Lanjut ({capturedPhotos.length}/{layout.photoCount})</span>

@@ -64,3 +64,13 @@ export interface CapturedPhoto {
 }
 
 export type AppStep = 'select-layout' | 'capture' | 'customize' | 'export';
+
+export type AnimationId = 'none' | 'hearts' | 'sparkles' | 'confetti' | 'bubbles' | 'petals' | 'snow' | 'shooting-stars' | 'neon-orbit' | 'head-crown' | 'head-halo' | 'head-hearts' | 'head-butterflies' | 'head-cat' | 'head-bunny';
+export interface AnimationSettings {
+  id: AnimationId;
+  intensity: number;
+  speed: number;
+}
+
+/** Position and size normalized to the source image; angle is in degrees. */
+export interface HeadAnchor { x: number; y: number; width: number; angle: number }
