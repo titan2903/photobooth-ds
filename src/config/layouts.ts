@@ -1,6 +1,32 @@
 import { LayoutConfig, LayoutId } from '../types/photobooth';
 
 export const LAYOUTS: Record<LayoutId, LayoutConfig> = {
+  'grid-6': {
+    id: 'grid-6',
+    name: 'Big Strip',
+    tagline: 'Enam pose dalam satu frame untuk lebih banyak cerita.',
+    photoCount: 6,
+    canvasWidth: 1200,
+    canvasHeight: 1800,
+    borderWidth: 40,
+    spacing: 20,
+    bottomPadding: 120,
+    gridColumns: 2,
+    previewAspect: 'aspect-[2/3]',
+  },
+  'wide-4': {
+    id: 'wide-4',
+    name: 'Wide Strip',
+    tagline: 'Format horizontal yang lega untuk foto bersama.',
+    photoCount: 4,
+    canvasWidth: 1800,
+    canvasHeight: 1200,
+    borderWidth: 40,
+    spacing: 20,
+    bottomPadding: 120,
+    gridColumns: 2,
+    previewAspect: 'aspect-[3/2]',
+  },
   'strip-4': {
     id: 'strip-4',
     name: 'Classic 4-Cut',

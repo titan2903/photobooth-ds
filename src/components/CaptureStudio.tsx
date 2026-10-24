@@ -4,13 +4,14 @@ import {
   FlipHorizontal, 
   Timer, 
   RotateCcw, 
-  Sparkles, 
   Check, 
   ArrowRight,
   AlertCircle 
 } from 'lucide-react';
 import { FilterId, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
+import { FilterPicker } from './FilterPicker';
+import { FilterEffects } from './FilterEffects';
 import { useCamera } from '../hooks/useCamera';
 import { playCountdownBeep, playShutterSound } from '../utils/audio';
 
@@ -128,12 +129,12 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
       <div className="flex items-center justify-between mb-4">
         <button
           onClick={onBackToLayout}
-          className="text-xs text-neutral-400 hover:text-white flex items-center gap-1.5 transition-colors"
+          className="text-xs text-studio-400 hover:text-studio-strong flex items-center gap-1.5 transition-colors"
         >
           ← Ganti Layout ({layout.name})
         </button>
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono-custom bg-neutral-900 border border-neutral-800 px-3 py-1 rounded-full text-rose-400 font-semibold">
+          <span className="text-xs font-mono-custom bg-studio-900 border border-studio-800 px-3 py-1 rounded-full text-rose-400 font-semibold">
             Pose {Math.min(capturedPhotos.length + 1, layout.photoCount)} dari {layout.photoCount}
           </span>
         </div>
@@ -142,7 +143,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Main Viewfinder (3 cols) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <div className="relative aspect-[4/3] sm:aspect-[16/10] bg-neutral-900 rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl flex items-center justify-center">
+          <div className="camera-preview relative aspect-[4/3] sm:aspect-[16/10] bg-studio-900 rounded-3xl overflow-hidden border border-studio-800 shadow-2xl flex items-center justify-center">
             {/* Live Video */}
             <video
               ref={videoRef}
@@ -156,12 +157,14 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
               className="w-full h-full object-cover"
             />
 
+            <FilterEffects filter={activeFilterConfig} />
+
             {/* Error Message */}
             {error && (
-              <div className="absolute inset-0 bg-neutral-950/90 flex flex-col items-center justify-center p-6 text-center z-20">
+              <div className="absolute inset-0 bg-studio-950/90 flex flex-col items-center justify-center p-6 text-center z-20">
                 <AlertCircle className="w-10 h-10 text-rose-500 mb-2" />
-                <h3 className="font-heading font-bold text-lg text-white mb-1">Akses Kamera Diperlukan</h3>
-                <p className="text-sm text-neutral-400 max-w-sm mb-4">{error}</p>
+                <h3 className="font-heading font-bold text-lg text-studio-strong mb-1">Akses Kamera Diperlukan</h3>
+                <p className="text-sm text-studio-400 max-w-sm mb-4">{error}</p>
                 <button
                   onClick={() => startStream(selectedDeviceId)}
                   className="px-4 py-2 bg-rose-500 text-white rounded-lg text-xs font-semibold hover:bg-rose-600 transition-colors"
@@ -210,7 +213,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                     className={`px-3 py-1 rounded-full text-xs font-mono-custom font-semibold transition-all ${
                       countdownSeconds === sec
                         ? 'bg-white text-black'
-                        : 'text-neutral-400 hover:text-white'
+                        : 'text-studio-400 hover:text-studio-strong'
                     }`}
                   >
                     {sec}s
@@ -229,7 +232,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                   className="bg-black/40 backdrop-blur-md border border-white/10 text-white text-xs rounded-full px-3 py-1.5 focus:outline-none"
                 >
                   {devices.map((d, i) => (
-                    <option key={d.deviceId || i} value={d.deviceId} className="bg-neutral-900 text-white">
+                    <option key={d.deviceId || i} value={d.deviceId} className="bg-studio-900 text-studio-strong">
                       {d.label || `Camera ${i + 1}`}
                     </option>
                   ))}
@@ -249,7 +252,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                     {isCountingDown ? (
                       <Timer className="w-7 h-7 text-rose-600 animate-spin" />
                     ) : (
-                      <Camera className="w-7 h-7 text-neutral-900 group-hover:scale-110 transition-transform" />
+                      <Camera className="w-7 h-7 text-studio-900 group-hover:scale-110 transition-transform" />
                     )}
                   </div>
                 </button>
@@ -266,40 +269,17 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
             </div>
           </div>
 
-          {/* Filter Bar */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            <span className="text-xs text-neutral-400 font-medium px-2 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              Filter:
-            </span>
-            {Object.values(FILTERS).map((filter) => {
-              const isSelected = selectedFilter === filter.id;
-              return (
-                <button
-                  key={filter.id}
-                  onClick={() => onFilterChange(filter.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all border ${
-                    isSelected
-                      ? 'bg-neutral-800 border-rose-500 text-white shadow-md'
-                      : 'bg-neutral-900/60 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
-                  }`}
-                >
-                  <div className={`w-3 h-3 rounded-full bg-gradient-to-tr ${filter.previewColor}`} />
-                  <span>{filter.name}</span>
-                </button>
-              );
-            })}
-          </div>
+          <FilterPicker selectedFilter={selectedFilter} onSelect={onFilterChange} previewPhoto={capturedPhotos[0]} compact />
         </div>
 
         {/* Right Strip Queue (1 col) */}
-        <div className="bg-neutral-900/70 border border-neutral-800 rounded-2xl p-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
-            <h4 className="font-heading font-bold text-sm text-white">Hasil Pose</h4>
+        <div className="bg-studio-900/70 border border-studio-800 rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between pb-2 border-b border-studio-800">
+            <h4 className="font-heading font-bold text-sm text-studio-strong">Hasil Pose</h4>
             {capturedPhotos.length > 0 && (
               <button
                 onClick={retakeAll}
-                className="text-[11px] text-neutral-400 hover:text-rose-400 flex items-center gap-1"
+                className="text-[11px] text-studio-400 hover:text-rose-400 flex items-center gap-1"
                 title="Retake all"
               >
                 <RotateCcw className="w-3 h-3" />
@@ -315,7 +295,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
               return (
                 <div
                   key={idx}
-                  className="relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 flex items-center justify-center group"
+                  className="relative aspect-[4/3] rounded-xl overflow-hidden bg-studio-950 border border-studio-800 flex items-center justify-center group"
                 >
                   {photo ? (
                     <>
@@ -325,6 +305,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                         style={{ filter: activeFilterConfig.cssFilter }}
                         className="w-full h-full object-cover"
                       />
+                      <FilterEffects filter={activeFilterConfig} />
                       {idx === capturedPhotos.length - 1 && (
                         <button
                           onClick={retakeLast}
@@ -337,7 +318,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                     </>
                   ) : (
                     <div className="text-center p-3">
-                      <span className="text-neutral-600 font-mono-custom text-xs">
+                      <span className="text-studio-600 font-mono-custom text-xs">
                         #{idx + 1}
                       </span>
                     </div>

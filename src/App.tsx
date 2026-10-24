@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { AppStep, FilterId, LayoutId } from './types/photobooth';
+import { AppStep, FilterId, FrameTheme, LayoutId } from './types/photobooth';
 import { LAYOUTS, DEFAULT_LAYOUT } from './config/layouts';
 import { DEFAULT_FILTER } from './config/filters';
+import { DEFAULT_THEME } from './config/themes';
 import { Header } from './components/Header';
 import { LayoutSelector } from './components/LayoutSelector';
 import { CaptureStudio } from './components/CaptureStudio';
 import { CustomizeStudio } from './components/CustomizeStudio';
 import { ShieldCheck, Heart } from 'lucide-react';
+import { useTheme } from './hooks/useTheme';
 
 export const App: React.FC = () => {
+  const { theme, toggleTheme } = useTheme();
   const [step, setStep] = useState<AppStep>('select-layout');
   const [selectedLayoutId, setSelectedLayoutId] = useState<LayoutId>(DEFAULT_LAYOUT);
+  const [selectedFrame, setSelectedFrame] = useState<FrameTheme>(DEFAULT_THEME);
   const [selectedFilter, setSelectedFilter] = useState<FilterId>(DEFAULT_FILTER);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
 
@@ -23,15 +27,17 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-neutral-950 text-neutral-100">
+    <div className="min-h-screen flex flex-col bg-studio-950 text-studio-100">
       {/* Top Navbar */}
-      <Header currentStep={step} onReset={handleReset} />
+      <Header currentStep={step} onReset={handleReset} theme={theme} onToggleTheme={toggleTheme} />
 
       {/* Main Studio Canvas / Steps */}
       <main className="flex-1">
         {step === 'select-layout' && (
           <LayoutSelector
             selectedLayout={selectedLayoutId}
+            selectedFrame={selectedFrame}
+            onSelectFrame={setSelectedFrame}
             onSelectLayout={(id) => setSelectedLayoutId(id)}
             onConfirm={() => setStep('capture')}
           />
@@ -55,6 +61,7 @@ export const App: React.FC = () => {
             layout={activeLayout}
             photos={capturedPhotos}
             initialFilter={selectedFilter}
+            initialTheme={selectedFrame}
             onBackToCapture={() => setStep('capture')}
             onNewSession={handleReset}
           />
@@ -62,8 +69,8 @@ export const App: React.FC = () => {
       </main>
 
       {/* Modern Footer with Privacy Notice */}
-      <footer className="border-t border-neutral-900 bg-neutral-950/80 py-6 px-4 mt-auto">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-500">
+      <footer className="border-t border-studio-900 bg-studio-950/80 py-6 px-4 mt-auto">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-studio-500">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
             <span>

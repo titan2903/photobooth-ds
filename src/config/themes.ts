@@ -1,7 +1,47 @@
 import { FrameTheme } from '../types/photobooth';
 
 export const FRAME_THEMES: FrameTheme[] = [
+  { id: 'ribbon-diary', tier: 'exclusive', name: 'Ribbon Diary', design: 'ribbon', category: 'Romantic',
+    description: 'Pita satin, renda, dan catatan cinta.', headline: 'tied to you',
+    bgValue: '#fff3f5', textColor: '#80374c', accentColor: '#c96687' },
+  { id: 'after-hours', tier: 'exclusive', name: 'After Hours', design: 'chrome', category: 'Playful',
+    description: 'Chrome futuristik, orbit, dan kilau Y2K.', headline: 'AFTER HOURS',
+    bgValue: '#191629', textColor: '#f0eaff', accentColor: '#c5b4ff' },
+  { id: 'flower-market', tier: 'standard', name: 'Flower Market', design: 'botanical', category: 'Romantic',
+    description: 'Bunga daisy dan garis taman bergaya vintage.', headline: 'in full bloom',
+    bgValue: '#f7f5e8', textColor: '#36583b', accentColor: '#81936a' },
+  { id: 'the-editorial', tier: 'standard', name: 'The Editorial', design: 'editorial', category: 'Minimal',
+    description: 'Tipografi majalah, garis tegas, dan nomor edisi.', headline: 'THE MOMENT',
+    bgValue: '#f5f0e8', textColor: '#27231f', accentColor: '#b23d32' },
+  { id: 'weekend-notes', tier: 'exclusive', name: 'Weekend Notes', design: 'scrapbook', category: 'Playful',
+    description: 'Kertas catatan, washi tape, dan doodle bintang.', headline: 'little happy things',
+    bgValue: '#fff8df', textColor: '#614d3d', accentColor: '#ed9277' },
+  { id: 'checkmate', tier: 'standard', name: 'Checkmate Club', design: 'checker', category: 'Playful',
+    description: 'Checkerboard retro, smiley, dan aksen kobalt.', headline: 'GOOD TIMES CLUB',
+    bgValue: '#eaf0ff', textColor: '#2346a0', accentColor: '#4168d1' },
+  { id: 'airmail-memories', name: 'Airmail Memories', tier: 'standard', design: 'postcard', category: 'Minimal',
+    description: 'Kartu pos dengan perangko dan bingkai airmail.', headline: 'sent with love',
+    bgValue: '#f7efe2', textColor: '#4e554e', accentColor: '#b55347' },
+  { id: 'midnight-wishes', name: 'Midnight Wishes', tier: 'exclusive', design: 'celestial', category: 'Romantic',
+    description: 'Bulan sabit, rasi bintang, dan garis emas.', headline: 'under the same sky',
+    bgValue: '#141d38', textColor: '#f5dfab', accentColor: '#d9b56c' },
+  { id: 'cinema-club', name: 'Cinema Club', tier: 'exclusive', design: 'cinema', category: 'Minimal',
+    description: 'Film 35mm dengan sprocket dan nomor adegan.', headline: 'CINEMA CLUB',
+    bgValue: '#211e1c', textColor: '#f5d9a5', accentColor: '#df994f' },
+  { id: 'ocean-postcards', name: 'Ocean Postcards', tier: 'standard', design: 'ocean', category: 'Romantic',
+    description: 'Gelombang laut, kerang, dan gelembung pantai.', headline: 'a little vitamin sea',
+    bgValue: '#e4f4f4', textColor: '#21677b', accentColor: '#55a4b4' },
+  { id: 'party-parade', name: 'Party Parade', tier: 'exclusive', design: 'confetti', category: 'Playful',
+    description: 'Confetti, pita pesta, dan stiker selebrasi.', headline: 'MAKE SOME NOISE!',
+    bgValue: '#fff1dc', textColor: '#794273', accentColor: '#dd728c' },
+  { id: 'gallery-no-01', name: 'Gallery No. 01', tier: 'standard', design: 'gallery', category: 'Minimal',
+    description: 'Sudut geometris dan tata letak galeri seni.', headline: 'STILL / HERE',
+    bgValue: '#eeece8', textColor: '#343936', accentColor: '#a45c36' },
+];
+
+export const SOLID_THEMES: FrameTheme[] = [
   {
+    tier: 'standard',
     id: 'pure-white',
     name: 'Pure White',
     bgValue: '#ffffff',
@@ -9,6 +49,7 @@ export const FRAME_THEMES: FrameTheme[] = [
     accentColor: '#e5e5e5',
   },
   {
+    tier: 'standard',
     id: 'matte-black',
     name: 'Matte Black',
     bgValue: '#121212',
@@ -16,6 +57,7 @@ export const FRAME_THEMES: FrameTheme[] = [
     accentColor: '#2a2a2a',
   },
   {
+    tier: 'standard',
     id: 'blush-pink',
     name: 'Blush Pink',
     bgValue: '#ffe0e6',
@@ -23,6 +65,7 @@ export const FRAME_THEMES: FrameTheme[] = [
     accentColor: '#f7b9c7',
   },
   {
+    tier: 'standard',
     id: 'lavender',
     name: 'Soft Lavender',
     bgValue: '#e6deff',
@@ -30,6 +73,7 @@ export const FRAME_THEMES: FrameTheme[] = [
     accentColor: '#c5b4ff',
   },
   {
+    tier: 'standard',
     id: 'matcha',
     name: 'Matcha Sage',
     bgValue: '#deedd6',
@@ -37,6 +81,7 @@ export const FRAME_THEMES: FrameTheme[] = [
     accentColor: '#bcd6af',
   },
   {
+    tier: 'standard',
     id: 'buttercream',
     name: 'Butter Cream',
     bgValue: '#fdf3d8',
@@ -44,6 +89,7 @@ export const FRAME_THEMES: FrameTheme[] = [
     accentColor: '#edd8a4',
   },
   {
+    tier: 'standard',
     id: 'deep-cherry',
     name: 'Deep Cherry',
     bgValue: '#4a0e17',
@@ -51,6 +97,7 @@ export const FRAME_THEMES: FrameTheme[] = [
     accentColor: '#7a1b29',
   },
   {
+    tier: 'standard',
     id: 'sky-blue',
     name: 'Vintage Sky',
     bgValue: '#d4e8fc',

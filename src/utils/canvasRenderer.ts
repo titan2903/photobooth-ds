@@ -1,5 +1,6 @@
 import { FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
+import { createFrameArtwork, getFrameGeometry, svgDataUrl } from './frameArtwork';
 
 /**
  * Draws an image fitted to a container rectangle using cover (center cropped).
@@ -169,88 +170,39 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
     })
   );
 
-  // 3. Compute Photo Grid Geometry
-  const { borderWidth, spacing, bottomPadding, gridColumns, photoCount } = layout;
+  const { unit, windows } = getFrameGeometry(layout, theme);
+  if (theme.design) {
+    const background = await loadArtwork(createFrameArtwork(layout, theme, 'background'));
+    ctx.drawImage(background, 0, 0);
+  }
   const filterConfig = FILTERS[filter] || FILTERS.normal;
-
-  if (gridColumns === 1) {
-    // Vertical Strip
-    const availableHeight = layout.canvasHeight - (borderWidth * 2) - (spacing * (photoCount - 1)) - bottomPadding;
-    const photoHeight = availableHeight / photoCount;
-    const photoWidth = layout.canvasWidth - (borderWidth * 2);
-
-    for (let i = 0; i < loadedImages.length; i++) {
-      const img = loadedImages[i];
-      const x = borderWidth;
-      const y = borderWidth + i * (photoHeight + spacing);
-
-      // Render photo on an isolated canvas to apply CSS filter and post-shaders
-      const photoCanvas = document.createElement('canvas');
-      photoCanvas.width = photoWidth;
-      photoCanvas.height = photoHeight;
-      const pCtx = photoCanvas.getContext('2d');
-
-      if (pCtx) {
-        pCtx.filter = filterConfig.cssFilter;
-        drawImageCover(pCtx, img, 0, 0, photoWidth, photoHeight, false);
-        pCtx.filter = 'none';
-
-        if (filterConfig.hasScanlines) {
-          drawScanlines(pCtx, photoWidth, photoHeight);
-        }
-        if (filterConfig.hasFilmScratches) {
-          drawFilmScratches(pCtx, photoWidth, photoHeight);
-        }
-        if (filterConfig.hasGrain) {
-          drawGrain(pCtx, photoWidth, photoHeight);
-        }
-
-        // Draw onto the master strip
-        ctx.drawImage(photoCanvas, x, y);
-      }
-    }
-  } else {
-    // 2x2 Postcard Grid
-    const rows = Math.ceil(photoCount / gridColumns);
-    const availableWidth = layout.canvasWidth - (borderWidth * 2) - spacing;
-    const availableHeight = layout.canvasHeight - (borderWidth * 2) - (spacing * (rows - 1)) - bottomPadding;
-    const photoWidth = availableWidth / gridColumns;
-    const photoHeight = availableHeight / rows;
-
-    for (let i = 0; i < loadedImages.length; i++) {
-      const img = loadedImages[i];
-      const col = i % gridColumns;
-      const row = Math.floor(i / gridColumns);
-      const x = borderWidth + col * (photoWidth + spacing);
-      const y = borderWidth + row * (photoHeight + spacing);
-
-      const photoCanvas = document.createElement('canvas');
-      photoCanvas.width = photoWidth;
-      photoCanvas.height = photoHeight;
-      const pCtx = photoCanvas.getContext('2d');
-
-      if (pCtx) {
-        pCtx.filter = filterConfig.cssFilter;
-        drawImageCover(pCtx, img, 0, 0, photoWidth, photoHeight, false);
-        pCtx.filter = 'none';
-
-        if (filterConfig.hasScanlines) {
-          drawScanlines(pCtx, photoWidth, photoHeight);
-        }
-        if (filterConfig.hasFilmScratches) {
-          drawFilmScratches(pCtx, photoWidth, photoHeight);
-        }
-        if (filterConfig.hasGrain) {
-          drawGrain(pCtx, photoWidth, photoHeight);
-        }
-
-        ctx.drawImage(photoCanvas, x, y);
-      }
-    }
+  for (let index = 0; index < Math.min(loadedImages.length, windows.length); index++) {
+    const window = windows[index];
+    const photoCanvas = document.createElement('canvas');
+    photoCanvas.width = Math.ceil(window.width);
+    photoCanvas.height = Math.ceil(window.height);
+    const photoContext = photoCanvas.getContext('2d');
+    if (!photoContext) continue;
+    photoContext.filter = filterConfig.cssFilter;
+    drawImageCover(photoContext, loadedImages[index], 0, 0, photoCanvas.width, photoCanvas.height);
+    photoContext.filter = 'none';
+    if (filterConfig.hasScanlines) drawScanlines(photoContext, photoCanvas.width, photoCanvas.height);
+    if (filterConfig.hasFilmScratches) drawFilmScratches(photoContext, photoCanvas.width, photoCanvas.height);
+    if (filterConfig.hasGrain) drawGrain(photoContext, photoCanvas.width, photoCanvas.height);
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(window.x, window.y, window.width, window.height, window.radius);
+    ctx.clip();
+    ctx.drawImage(photoCanvas, window.x, window.y, window.width, window.height);
+    ctx.restore();
+  }
+  if (theme.design) {
+    const overlay = await loadArtwork(createFrameArtwork(layout, theme, 'overlay'));
+    ctx.drawImage(overlay, 0, 0);
   }
 
   // 4. Draw Bottom Branding & Date/Time Stamp
-  const bottomY = layout.canvasHeight - (bottomPadding / 2);
+  const bottomY = theme.design ? layout.canvasHeight - 56 * unit : layout.canvasHeight - layout.bottomPadding / 2;
 
   ctx.fillStyle = theme.textColor;
   ctx.textAlign = 'center';
@@ -258,9 +210,10 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
 
   // Custom Caption or Studio Brand
   const mainCaption = caption.trim() || 'PHOTOBOOTH STUDIO';
-  ctx.font = '700 24px "Syne", "Plus Jakarta Sans", sans-serif';
-  ctx.letterSpacing = '3px';
-  ctx.fillText(mainCaption.toUpperCase(), layout.canvasWidth / 2, bottomY - 14);
+  const captionSize = theme.design ? 20 * unit : 24;
+  ctx.font = `700 ${captionSize}px "Syne", "Plus Jakarta Sans", sans-serif`;
+  ctx.letterSpacing = `${theme.design ? 2 * unit : 3}px`;
+  ctx.fillText(mainCaption.toUpperCase(), layout.canvasWidth / 2, bottomY - 14 * (theme.design ? unit : 1), layout.canvasWidth - 100 * unit);
 
   // Date & Time
   const now = new Date();
@@ -272,13 +225,22 @@ export async function renderPhotoStrip(options: RenderStripOptions): Promise<HTM
   if (showTime) dateParts.push(tText);
 
   if (dateParts.length > 0) {
-    ctx.font = '500 15px "Space Grotesk", monospace';
+    ctx.font = `500 ${theme.design ? 12 * unit : 15}px "Space Grotesk", monospace`;
     ctx.letterSpacing = '1px';
     ctx.fillStyle = theme.textColor;
     ctx.globalAlpha = 0.8;
-    ctx.fillText(dateParts.join(' • '), layout.canvasWidth / 2, bottomY + 16);
+    ctx.fillText(dateParts.join(' • '), layout.canvasWidth / 2, bottomY + 16 * (theme.design ? unit : 1));
     ctx.globalAlpha = 1.0;
   }
 
   return canvas;
+}
+
+function loadArtwork(svg: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Frame artwork could not be loaded'));
+    image.src = svgDataUrl(svg);
+  });
 }

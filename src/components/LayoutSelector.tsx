@@ -1,113 +1,131 @@
-import React from 'react';
-import { LayoutId } from '../types/photobooth';
+import React, { useState } from 'react';
+import { FrameTheme, LayoutConfig, LayoutId } from '../types/photobooth';
 import { LAYOUTS } from '../config/layouts';
-import { ArrowRight, Camera, Sparkles } from 'lucide-react';
+import { FramePicker } from './FramePicker';
+import { FrameBadge } from './FrameBadge';
+import { ArrowRight, Check, Camera, Sparkles } from 'lucide-react';
 
 interface LayoutSelectorProps {
   selectedLayout: LayoutId;
+  selectedFrame: FrameTheme;
+  onSelectFrame: (theme: FrameTheme) => void;
   onSelectLayout: (id: LayoutId) => void;
   onConfirm: () => void;
 }
 
-export const LayoutSelector: React.FC<LayoutSelectorProps> = ({
-  selectedLayout,
-  onSelectLayout,
-  onConfirm,
-}) => {
+type Category = 'all' | 'classic' | 'studio' | 'special';
+const categories: { id: Category; label: string }[] = [
+  { id: 'all', label: 'Semua Layout' },
+  { id: 'classic', label: 'Classic Strips' },
+  { id: 'studio', label: 'Studio' },
+  { id: 'special', label: 'Special Formats' },
+];
+const gallery: { id: LayoutId; category: Category; tone: string; label?: string }[] = [
+  { id: 'strip-3', category: 'classic', tone: 'peach', label: 'FAVORIT' },
+  { id: 'strip-4', category: 'classic', tone: 'lavender' },
+  { id: 'grid-4', category: 'studio', tone: 'sage', label: 'STUDIO' },
+  { id: 'strip-2', category: 'classic', tone: 'rose' },
+  { id: 'grid-6', category: 'special', tone: 'butter', label: 'BARU' },
+  { id: 'wide-4', category: 'special', tone: 'blue', label: 'BARU' },
+];
+
+// Use the export geometry so the thumbnail matches the final photo arrangement.
+function StripPreview({ layout }: { layout: LayoutConfig }) {
+  const rows = Math.ceil(layout.photoCount / layout.gridColumns);
+  const photoWidth = (layout.canvasWidth - layout.borderWidth * 2 - layout.spacing * (layout.gridColumns - 1)) / layout.gridColumns;
+  const photoHeight = (layout.canvasHeight - layout.borderWidth * 2 - layout.spacing * (rows - 1) - layout.bottomPadding) / rows;
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 sm:py-12 flex flex-col items-center">
-      {/* Hero Headline */}
-      <div className="text-center max-w-2xl mx-auto mb-10">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium mb-3">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>Pilih Format Photo Strip Favoritmu</span>
+    <div className="layout-paper" style={{ aspectRatio: `${layout.canvasWidth} / ${layout.canvasHeight}` }}>
+      {Array.from({ length: layout.photoCount }, (_, index) => (
+        <div key={index} className={`layout-photo layout-photo-${index % 3}`} style={{
+          left: `${(layout.borderWidth + (index % layout.gridColumns) * (photoWidth + layout.spacing)) / layout.canvasWidth * 100}%`,
+          top: `${(layout.borderWidth + Math.floor(index / layout.gridColumns) * (photoHeight + layout.spacing)) / layout.canvasHeight * 100}%`,
+          width: `${photoWidth / layout.canvasWidth * 100}%`,
+          height: `${photoHeight / layout.canvasHeight * 100}%`,
+        }}>
+          <svg viewBox="0 0 120 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <circle cx="95" cy="18" r="12" fill="white" opacity=".35" />
+            <path d="M0 85 Q30 48 60 83 T130 67 V110 H0Z" fill="white" opacity=".22" />
+            <path d="M27 102 Q25 59 57 59 Q88 58 92 102" fill="var(--portrait-shirt)" />
+            <path d="M38 46 Q32 10 59 12 Q88 13 80 49 L78 64 H39Z" fill="#443b40" />
+            <ellipse cx="59" cy="41" rx="18" ry="22" fill="#e9bb9f" />
+            <path d="M39 35 Q39 11 59 13 Q78 13 80 34 Q64 34 55 22 Q50 32 39 35" fill="#443b40" />
+            <circle cx="53" cy="41" r="1.4" fill="#443b40" /><circle cx="66" cy="41" r="1.4" fill="#443b40" />
+            <path d="M55 51 Q60 55 65 50" fill="none" stroke="#ac6863" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
         </div>
-        <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mb-3">
-          Capture Your Memories
-        </h1>
-        <p className="text-neutral-400 text-sm sm:text-base leading-relaxed">
-          Pilih template photo strip bergaya photobooth studio Korea. Ambil pose terbaikmu langsung dari kamera peramban.
-        </p>
+      ))}
+      <span className="layout-paper-caption">PHOTOBOOTH<br /><small>GOOD TIMES, FOREVER.</small></span>
+    </div>
+  );
+}
+
+export const LayoutSelector: React.FC<LayoutSelectorProps> = ({ selectedLayout, selectedFrame, onSelectFrame, onSelectLayout, onConfirm }) => {
+  const [customHex, setCustomHex] = useState(selectedFrame.bgValue);
+  const [category, setCategory] = useState<Category>('all');
+  const visibleLayouts = gallery.filter((item) => category === 'all' || item.category === category);
+  const activeLayout = LAYOUTS[selectedLayout];
+
+  return (
+    <section className="layout-gallery mx-auto max-w-6xl px-4 sm:px-6" aria-labelledby="layout-title">
+      <div className="layout-heading text-center">
+        <span className="layout-eyebrow"><Sparkles size={14} /> A LITTLE POSE, A LOT OF MEMORIES</span>
+        <h1 id="layout-title">choose your <span>layout</span><span className="layout-heading-star" aria-hidden="true">✳</span></h1>
+        <p>Pilih layout favoritmu. Buat setiap momen jadi kenangan.</p>
       </div>
 
-      {/* Grid of Layout Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 w-full mb-10">
-        {Object.values(LAYOUTS).map((layout) => {
-          const isSelected = selectedLayout === layout.id;
+      <div className="layout-categories" role="group" aria-label="Kategori layout">
+        {categories.map((item) => (
+          <button key={item.id} type="button" aria-pressed={category === item.id}
+            className={`layout-category ${category === item.id ? 'is-active' : ''}`}
+            onClick={() => setCategory(item.id)}>{item.label}</button>
+        ))}
+      </div>
 
+      <div className="layout-gallery-meta">
+        <span>{visibleLayouts.length} layout untuk ceritamu</span>
+        <span><Camera size={14} /> Gratis & tanpa iklan</span>
+      </div>
+
+      <div className="layout-grid">
+        {visibleLayouts.map((item) => {
+          const layout = LAYOUTS[item.id];
+          const isSelected = selectedLayout === item.id;
           return (
-            <div
-              key={layout.id}
-              onClick={() => onSelectLayout(layout.id)}
-              className={`group relative rounded-2xl p-4 cursor-pointer transition-all duration-300 flex flex-col items-center border ${
-                isSelected
-                  ? 'bg-neutral-900 border-rose-500 ring-2 ring-rose-500/30 shadow-xl shadow-rose-500/10 -translate-y-1'
-                  : 'bg-neutral-900/60 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-900'
-              }`}
-            >
-              {/* Active Selection Badge */}
-              {isSelected && (
-                <div className="absolute top-3 right-3 w-5 h-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs font-bold">
-                  ✓
-                </div>
-              )}
-
-              {/* Strip Mockup Representation */}
-              <div className="w-full flex items-center justify-center py-6">
-                <div 
-                  className={`bg-neutral-800/90 rounded-lg p-2.5 shadow-md flex flex-col items-center justify-between border border-neutral-700/50 transition-transform group-hover:scale-105 ${
-                    layout.id === 'grid-4' 
-                      ? 'w-36 h-44' 
-                      : layout.id === 'strip-4'
-                      ? 'w-24 h-56'
-                      : layout.id === 'strip-3'
-                      ? 'w-24 h-48'
-                      : 'w-24 h-40'
-                  }`}
-                >
-                  {/* Photo Boxes */}
-                  <div className={`w-full flex-1 gap-1.5 ${layout.gridColumns === 2 ? 'grid grid-cols-2' : 'flex flex-col'}`}>
-                    {Array.from({ length: layout.photoCount }).map((_, idx) => (
-                      <div 
-                        key={idx} 
-                        className="bg-neutral-950/70 rounded border border-neutral-700/30 flex-1 flex items-center justify-center"
-                      >
-                        <Camera className="w-3 h-3 text-neutral-600" />
-                      </div>
-                    ))}
-                  </div>
-                  {/* Bottom Text Line */}
-                  <div className="w-10 h-1 bg-neutral-700 rounded-full mt-2" />
-                </div>
+            <button key={item.id} type="button" className={`layout-card ${isSelected ? 'is-selected' : ''}`}
+              aria-pressed={isSelected} onClick={() => onSelectLayout(item.id)}>
+              <div className={`layout-card-art tone-${item.tone}`}>
+                {item.label && <span className="layout-card-badge">{item.label}</span>}
+                <span className={`layout-selection ${isSelected ? 'is-selected' : ''}`} aria-hidden="true">{isSelected && <Check size={14} strokeWidth={3} />}</span>
+                <div className={`layout-preview layout-preview-${layout.id}`}><StripPreview layout={layout} /></div>
+                <span className="layout-art-star" aria-hidden="true">✧</span>
+                <span className="layout-art-note" aria-hidden="true">make it a memory</span>
               </div>
-
-              {/* Layout Details */}
-              <div className="w-full text-center mt-2">
-                <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <h3 className="font-heading font-bold text-white text-base">
-                    {layout.name}
-                  </h3>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-300 font-mono-custom font-semibold">
-                    {layout.photoCount} Foto
-                  </span>
-                </div>
-                <p className="text-xs text-neutral-400 line-clamp-2">
-                  {layout.tagline}
-                </p>
+              <div className="layout-card-info">
+                <div className="layout-card-title"><h2>{layout.name}</h2><span>{layout.photoCount} foto</span></div>
+                <p>{layout.tagline}</p>
+                <div className="layout-card-bottom"><span>{layout.gridColumns === 1 ? 'Vertical strip' : layout.id === 'wide-4' ? 'Landscape grid' : `${layout.gridColumns} × ${layout.photoCount / layout.gridColumns} grid`}</span><span className="layout-card-link">{isSelected ? 'Terpilih' : 'Pilih layout'} {isSelected ? <Check size={14} /> : <ArrowRight size={14} />}</span></div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
 
-      {/* Start Button */}
-      <button
-        onClick={onConfirm}
-        className="flex items-center gap-2.5 px-8 py-3.5 rounded-xl bg-gradient-to-r from-rose-500 via-pink-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white font-heading font-bold text-base shadow-lg shadow-rose-500/25 transition-all duration-200 active:scale-95 group"
-      >
-        <span>Mulai Sesi Pemotretan</span>
-        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-      </button>
-    </div>
+      <div className="layout-frame-collection">
+        <FramePicker layout={activeLayout} selectedTheme={selectedFrame} customHex={customHex}
+          onSelect={(theme) => { onSelectFrame(theme); setCustomHex(theme.bgValue); }}
+          onCustomColor={(color) => {
+            setCustomHex(color);
+            const rgb = color.slice(1).match(/.{2}/g)!.map(value => parseInt(value, 16));
+            const luminance = (rgb[0] * 299 + rgb[1] * 587 + rgb[2] * 114) / 1000;
+            onSelectFrame({ id: 'custom', tier: 'standard', name: 'Custom Hex', bgValue: color, textColor: luminance >= 128 ? '#111111' : '#ffffff', isCustom: true });
+          }} />
+      </div>
+      <div className="layout-continue">
+        <div><span className="layout-continue-label">LAYOUT PILIHANMU</span><p aria-live="polite">{activeLayout.name} <span>· {activeLayout.photoCount} foto · {selectedFrame.name}</span></p><FrameBadge tier={selectedFrame.tier} /></div>
+        <button type="button" onClick={onConfirm}>Mulai Foto <ArrowRight size={18} /></button>
+      </div>
+      <p className="layout-bottom-note">Pose sesukamu. Kenangan milikmu. <span aria-hidden="true">♡</span></p>
+    </section>
   );
 };

@@ -1,4 +1,4 @@
-export type LayoutId = 'strip-4' | 'strip-3' | 'strip-2' | 'grid-4';
+export type LayoutId = 'strip-4' | 'strip-3' | 'strip-2' | 'grid-4' | 'grid-6' | 'wide-4';
 
 export interface LayoutConfig {
   id: LayoutId;
@@ -21,25 +21,39 @@ export type FilterId =
   | 'warm'
   | 'noir'
   | 'retro-film'
-  | 'cyber-scanlines';
+  | 'cyber-scanlines'
+  | 'porcelain' | 'blush' | 'peach' | 'ice' | 'lavender-haze'
+  | 'faded' | 'honey-film' | 'instant' | 'soft-bw' | 'silver'
+  | 'teal-orange' | 'sunset' | 'vivid' | 'infrared';
+
+export type FilterCategory = 'Natural' | 'Portrait' | 'Vintage' | 'Monochrome' | 'Creative';
 
 export interface FilterConfig {
   id: FilterId;
   name: string;
   previewColor: string;
+  category: FilterCategory;
+  description: string;
   cssFilter: string;
   hasScanlines?: boolean;
   hasFilmScratches?: boolean;
   hasGrain?: boolean;
 }
 
+export type FrameTier = 'standard' | 'exclusive';
+
 export interface FrameTheme {
+  tier: FrameTier;
   id: string;
   name: string;
   bgValue: string;
   textColor: string;
   accentColor?: string;
   isCustom?: boolean;
+  design?: 'ribbon' | 'chrome' | 'botanical' | 'editorial' | 'scrapbook' | 'checker' | 'postcard' | 'celestial' | 'cinema' | 'ocean' | 'confetti' | 'gallery';
+  category?: 'Romantic' | 'Playful' | 'Minimal';
+  description?: string;
+  headline?: string;
 }
 
 export interface CapturedPhoto {

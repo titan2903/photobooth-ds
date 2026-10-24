@@ -1,6 +1,6 @@
 # Laporan Reverse Engineering: photobooth-io.cc
 
-Laporan ini disusun menggunakan tools analisis REA (*Reverse Engineer Anything*) terhadap aplikasi web **https://photobooth-io.cc/**. Semua aset skrip dan halaman asli telah diunduh ke direktori [`target_app/`](./target_app/).
+Laporan ini disusun menggunakan tools analisis REA (*Reverse Engineer Anything*) terhadap aplikasi web **https://photobooth-io.cc/**. Berkas kode sumber pihak ketiga telah dihapus demi kepatuhan hak cipta dan lisensi komersial. Repositori ini sepenuhnya menggunakan implementasi bersih (*clean-room reconstruction*) berbasis React + TypeScript di direktori [`src/`](./src/).
 
 ---
 
@@ -87,32 +87,13 @@ flowchart LR
 
 ---
 
-## 3. Struktur Berkas yang Telah Diunduh
+## 3. Hasil Pemetaan Modul Target (Telah Dibersihkan)
 
-```
-target_app/
-├── index.html                  # Landing page
-├── chooseLayout.html           # Menu pilihan layout & grid
-├── canvas.html                 # Studio pemotretan 1/3-foto
-├── canvas2.html                # Studio pemotretan 2-foto
-├── canvas4.html                # Studio pemotretan 4-foto
-├── canvas6.html                # Studio pemotretan 6-foto
-├── studio-mode.html            # Studio mode lanjutan
-├── customize.html              # Studio editing frame, stiker & download
-├── main.js                     # Handler UI global & navigasi
-├── layout.js                   # State IndexedDB & routing layout
-├── canvas.js                   # Engine kamera, countdown & filter
-├── customize.js                # Engine kompilasi canvas strip & ekspor
-├── download.js                 # Helper trigger download
-└── js/
-    ├── ad-gate.js
-    ├── collapsible-sections.js
-    ├── crop-modal.js           # Modal crop review foto
-    ├── crop-preview.js         # Preview crop frame
-    ├── frame-color-marker.js
-    ├── layout-catalog.js       # Katalog variasi template
-    ├── layout-switcher.js      # Handler pergantian layout dinamis
-    ├── photo-adjust.js         # Tool zoom/pan foto di frame
-    ├── photo-reorder.js        # Urutan foto
-    └── studio-worker-config.js
-```
+Berkas-berkas mentah yang diekstraksi dari target telah dihapus dari repositori untuk mencegah masalah hak cipta / lisensi komersial. Rangkuman fungsi masing-masing komponen asli yang telah dipelajari dan diimplementasikan ulang secara orisinal pada [`src/`](./src/):
+
+| Modul Asli | Komponen Pengganti (Clean-Room Rebuild di `src/`) | Deskripsi Fungsi |
+| :--- | :--- | :--- |
+| `main.js` | [`src/components/Header.tsx`](./src/components/Header.tsx) | Navigasi studio, reset sesi, dan indikator alur. |
+| `layout.js` | [`src/components/LayoutSelector.tsx`](./src/components/LayoutSelector.tsx) & [`src/config/layouts.ts`](./src/config/layouts.ts) | Definisi spesifikasi grid 4-strip, 3-strip, 2-mini, dan 2x2. |
+| `canvas.js` | [`src/hooks/useCamera.ts`](./src/hooks/useCamera.ts) & [`src/components/CaptureStudio.tsx`](./src/components/CaptureStudio.tsx) | Engine WebRTC stream kamera, countdown timer, audio shutter sintetis, dan mirror flip. |
+| `customize.js` | [`src/utils/canvasRenderer.ts`](./src/utils/canvasRenderer.ts) & [`src/components/CustomizeStudio.tsx`](./src/components/CustomizeStudio.tsx) | Algoritma kompilasi canvas strip piksel-presisi, filter visual procedural, dan ekspor PNG resolusi tinggi. |
