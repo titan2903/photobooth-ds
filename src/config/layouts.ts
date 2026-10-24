@@ -1,0 +1,58 @@
+import { LayoutConfig, LayoutId } from '../types/photobooth';
+
+export const LAYOUTS: Record<LayoutId, LayoutConfig> = {
+  'strip-4': {
+    id: 'strip-4',
+    name: 'Classic 4-Cut',
+    tagline: 'Signature vertical photo strip with 4 memorable poses',
+    photoCount: 4,
+    canvasWidth: 624,
+    canvasHeight: 1800,
+    borderWidth: 30,
+    spacing: 12,
+    bottomPadding: 100,
+    gridColumns: 1,
+    previewAspect: 'aspect-[624/1800]',
+  },
+  'strip-3': {
+    id: 'strip-3',
+    name: 'Trio Strip',
+    tagline: 'Clean 3-frame vertical strip for bold & balanced portraits',
+    photoCount: 3,
+    canvasWidth: 592,
+    canvasHeight: 1352,
+    borderWidth: 30,
+    spacing: 12,
+    bottomPadding: 100,
+    gridColumns: 1,
+    previewAspect: 'aspect-[592/1352]',
+  },
+  'strip-2': {
+    id: 'strip-2',
+    name: 'Duo Mini',
+    tagline: '2 large frames, perfect for couple shots & close-ups',
+    photoCount: 2,
+    canvasWidth: 592,
+    canvasHeight: 960,
+    borderWidth: 30,
+    spacing: 14,
+    bottomPadding: 80,
+    gridColumns: 1,
+    previewAspect: 'aspect-[592/960]',
+  },
+  'grid-4': {
+    id: 'grid-4',
+    name: '2x2 Studio Grid',
+    tagline: 'Modern 4-panel postcard format',
+    photoCount: 4,
+    canvasWidth: 800,
+    canvasHeight: 1000,
+    borderWidth: 30,
+    spacing: 14,
+    bottomPadding: 100,
+    gridColumns: 2,
+    previewAspect: 'aspect-[800/1000]',
+  },
+};
+
+export const DEFAULT_LAYOUT: LayoutId = 'strip-4';

@@ -1,0 +1,363 @@
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { 
+  Camera, 
+  FlipHorizontal, 
+  Timer, 
+  RotateCcw, 
+  Sparkles, 
+  Check, 
+  ArrowRight,
+  AlertCircle 
+} from 'lucide-react';
+import { FilterId, LayoutConfig } from '../types/photobooth';
+import { FILTERS } from '../config/filters';
+import { useCamera } from '../hooks/useCamera';
+import { playCountdownBeep, playShutterSound } from '../utils/audio';
+
+interface CaptureStudioProps {
+  layout: LayoutConfig;
+  selectedFilter: FilterId;
+  onFilterChange: (filter: FilterId) => void;
+  onPhotosComplete: (photos: string[]) => void;
+  onBackToLayout: () => void;
+}
+
+export const CaptureStudio: React.FC<CaptureStudioProps> = ({
+  layout,
+  selectedFilter,
+  onFilterChange,
+  onPhotosComplete,
+  onBackToLayout,
+}) => {
+  const {
+    videoRef,
+    isReady,
+    error,
+    devices,
+    selectedDeviceId,
+    setSelectedDeviceId,
+    isMirrored,
+    setIsMirrored,
+    startStream,
+    captureFrame,
+  } = useCamera({ idealWidth: 1280, idealHeight: 960 });
+
+  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(3); // 3 or 5
+  const [isCountingDown, setIsCountingDown] = useState<boolean>(false);
+  const [currentCount, setCurrentCount] = useState<number | null>(null);
+  const [showFlash, setShowFlash] = useState<boolean>(false);
+
+  const countdownIntervalRef = useRef<number | null>(null);
+
+  // Initialize camera stream on mount
+  useEffect(() => {
+    startStream();
+  }, [startStream]);
+
+  // Clean up interval
+  useEffect(() => {
+    return () => {
+      if (countdownIntervalRef.current) {
+        window.clearInterval(countdownIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Handle Shutter Trigger
+  const takeSnapshot = useCallback(() => {
+    setShowFlash(true);
+    playShutterSound();
+    setTimeout(() => setShowFlash(false), 350);
+
+    const frameData = captureFrame(1000, 1250);
+    if (frameData) {
+      setCapturedPhotos((prev) => {
+        const next = [...prev, frameData];
+        return next;
+      });
+    }
+  }, [captureFrame]);
+
+  // Trigger countdown then snapshot
+  const startCountdown = useCallback(() => {
+    if (isCountingDown || !isReady) return;
+
+    setIsCountingDown(true);
+    setCurrentCount(countdownSeconds);
+    playCountdownBeep(false);
+
+    let count = countdownSeconds;
+
+    countdownIntervalRef.current = window.setInterval(() => {
+      count -= 1;
+      if (count > 0) {
+        setCurrentCount(count);
+        playCountdownBeep(false);
+      } else {
+        // Shutter time!
+        if (countdownIntervalRef.current) {
+          window.clearInterval(countdownIntervalRef.current);
+          countdownIntervalRef.current = null;
+        }
+        setCurrentCount(null);
+        setIsCountingDown(false);
+        takeSnapshot();
+      }
+    }, 1000);
+  }, [isCountingDown, isReady, countdownSeconds, takeSnapshot]);
+
+  // Check if session completed
+  const isFinished = capturedPhotos.length >= layout.photoCount;
+
+  // Retake last photo
+  const retakeLast = () => {
+    setCapturedPhotos((prev) => prev.slice(0, prev.length - 1));
+  };
+
+  // Retake all photos
+  const retakeAll = () => {
+    setCapturedPhotos([]);
+  };
+
+  const activeFilterConfig = FILTERS[selectedFilter] || FILTERS.normal;
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-6">
+      {/* Top Bar Navigation */}
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={onBackToLayout}
+          className="text-xs text-neutral-400 hover:text-white flex items-center gap-1.5 transition-colors"
+        >
+          ← Ganti Layout ({layout.name})
+        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-mono-custom bg-neutral-900 border border-neutral-800 px-3 py-1 rounded-full text-rose-400 font-semibold">
+            Pose {Math.min(capturedPhotos.length + 1, layout.photoCount)} dari {layout.photoCount}
+          </span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+        {/* Main Viewfinder (3 cols) */}
+        <div className="lg:col-span-3 flex flex-col gap-4">
+          <div className="relative aspect-[4/3] sm:aspect-[16/10] bg-neutral-900 rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl flex items-center justify-center">
+            {/* Live Video */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                filter: activeFilterConfig.cssFilter,
+                transform: isMirrored ? 'scaleX(-1)' : 'none',
+              }}
+              className="w-full h-full object-cover"
+            />
+
+            {/* Error Message */}
+            {error && (
+              <div className="absolute inset-0 bg-neutral-950/90 flex flex-col items-center justify-center p-6 text-center z-20">
+                <AlertCircle className="w-10 h-10 text-rose-500 mb-2" />
+                <h3 className="font-heading font-bold text-lg text-white mb-1">Akses Kamera Diperlukan</h3>
+                <p className="text-sm text-neutral-400 max-w-sm mb-4">{error}</p>
+                <button
+                  onClick={() => startStream(selectedDeviceId)}
+                  className="px-4 py-2 bg-rose-500 text-white rounded-lg text-xs font-semibold hover:bg-rose-600 transition-colors"
+                >
+                  Coba Lagi
+                </button>
+              </div>
+            )}
+
+            {/* Camera Flash Overlay */}
+            {showFlash && (
+              <div className="absolute inset-0 bg-white animate-flash z-30 pointer-events-none" />
+            )}
+
+            {/* Countdown Overlay */}
+            {currentCount !== null && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px] z-20 pointer-events-none">
+                <span className="text-8xl sm:text-9xl font-heading font-black text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] scale-125 animate-ping duration-700">
+                  {currentCount}
+                </span>
+              </div>
+            )}
+
+            {/* Floating Top Control Pills */}
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10 pointer-events-auto">
+              {/* Mirror Toggle */}
+              <button
+                onClick={() => setIsMirrored((prev) => !prev)}
+                className={`p-2.5 rounded-full backdrop-blur-md border text-xs font-medium flex items-center gap-1.5 transition-all ${
+                  isMirrored 
+                    ? 'bg-rose-500/20 border-rose-500/40 text-rose-300' 
+                    : 'bg-black/40 border-white/10 text-white hover:bg-black/60'
+                }`}
+                title="Mirror Camera"
+              >
+                <FlipHorizontal className="w-4 h-4" />
+                <span className="hidden sm:inline">Mirror</span>
+              </button>
+
+              {/* Timer Duration Selector */}
+              <div className="flex items-center gap-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-full p-1">
+                {[3, 5].map((sec) => (
+                  <button
+                    key={sec}
+                    onClick={() => setCountdownSeconds(sec)}
+                    className={`px-3 py-1 rounded-full text-xs font-mono-custom font-semibold transition-all ${
+                      countdownSeconds === sec
+                        ? 'bg-white text-black'
+                        : 'text-neutral-400 hover:text-white'
+                    }`}
+                  >
+                    {sec}s
+                  </button>
+                ))}
+              </div>
+
+              {/* Device Selector (if multiple) */}
+              {devices.length > 1 && (
+                <select
+                  value={selectedDeviceId}
+                  onChange={(e) => {
+                    setSelectedDeviceId(e.target.value);
+                    startStream(e.target.value);
+                  }}
+                  className="bg-black/40 backdrop-blur-md border border-white/10 text-white text-xs rounded-full px-3 py-1.5 focus:outline-none"
+                >
+                  {devices.map((d, i) => (
+                    <option key={d.deviceId || i} value={d.deviceId} className="bg-neutral-900 text-white">
+                      {d.label || `Camera ${i + 1}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Shutter Action Bar */}
+            <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center z-10">
+              {!isFinished ? (
+                <button
+                  onClick={startCountdown}
+                  disabled={isCountingDown || !isReady}
+                  className="group relative w-18 h-18 rounded-full bg-white/20 backdrop-blur-md p-1.5 transition-transform active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  <div className="w-full h-full rounded-full bg-white flex items-center justify-center shadow-lg group-hover:bg-rose-100 transition-colors">
+                    {isCountingDown ? (
+                      <Timer className="w-7 h-7 text-rose-600 animate-spin" />
+                    ) : (
+                      <Camera className="w-7 h-7 text-neutral-900 group-hover:scale-110 transition-transform" />
+                    )}
+                  </div>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onPhotosComplete(capturedPhotos)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-heading font-bold shadow-lg shadow-emerald-500/30 transition-transform active:scale-95"
+                >
+                  <Check className="w-5 h-5" />
+                  <span>Lanjut ke Kustomisasi</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Bar */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <span className="text-xs text-neutral-400 font-medium px-2 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              Filter:
+            </span>
+            {Object.values(FILTERS).map((filter) => {
+              const isSelected = selectedFilter === filter.id;
+              return (
+                <button
+                  key={filter.id}
+                  onClick={() => onFilterChange(filter.id)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs whitespace-nowrap transition-all border ${
+                    isSelected
+                      ? 'bg-neutral-800 border-rose-500 text-white shadow-md'
+                      : 'bg-neutral-900/60 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700'
+                  }`}
+                >
+                  <div className={`w-3 h-3 rounded-full bg-gradient-to-tr ${filter.previewColor}`} />
+                  <span>{filter.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Strip Queue (1 col) */}
+        <div className="bg-neutral-900/70 border border-neutral-800 rounded-2xl p-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between pb-2 border-b border-neutral-800">
+            <h4 className="font-heading font-bold text-sm text-white">Hasil Pose</h4>
+            {capturedPhotos.length > 0 && (
+              <button
+                onClick={retakeAll}
+                className="text-[11px] text-neutral-400 hover:text-rose-400 flex items-center gap-1"
+                title="Retake all"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Queue Boxes */}
+          <div className="flex flex-col gap-2.5">
+            {Array.from({ length: layout.photoCount }).map((_, idx) => {
+              const photo = capturedPhotos[idx];
+              return (
+                <div
+                  key={idx}
+                  className="relative aspect-[4/3] rounded-xl overflow-hidden bg-neutral-950 border border-neutral-800 flex items-center justify-center group"
+                >
+                  {photo ? (
+                    <>
+                      <img
+                        src={photo}
+                        alt={`Pose ${idx + 1}`}
+                        style={{ filter: activeFilterConfig.cssFilter }}
+                        className="w-full h-full object-cover"
+                      />
+                      {idx === capturedPhotos.length - 1 && (
+                        <button
+                          onClick={retakeLast}
+                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 text-white text-xs font-semibold transition-opacity"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          Foto Ulang
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="text-center p-3">
+                      <span className="text-neutral-600 font-mono-custom text-xs">
+                        #{idx + 1}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {isFinished && (
+            <button
+              onClick={() => onPhotosComplete(capturedPhotos)}
+              className="mt-2 w-full py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-heading font-bold text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 transition-transform active:scale-95"
+            >
+              <span>Lanjut ({capturedPhotos.length}/{layout.photoCount})</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
