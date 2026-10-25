@@ -3,11 +3,11 @@ import { AnimationSettings, HeadAnchor } from '../types/photobooth';
 import { createAnimationArtwork } from '../utils/animatedEffects';
 import { projectHeadAnchors } from '../utils/headGeometry';
 
-export const AnimatedOverlay: React.FC<{ settings: AnimationSettings; time?: number; heads?: HeadAnchor[]; sourceWidth?: number; sourceHeight?: number; mirrored?: boolean }> = ({ settings, time, heads, sourceWidth, sourceHeight, mirrored }) => {
+export const AnimatedOverlay: React.FC<{ settings: AnimationSettings; time?: number; heads?: HeadAnchor[]; sourceWidth?: number; sourceHeight?: number; mirrored?: boolean; zoom?: number }> = ({ settings, time, heads, sourceWidth, sourceHeight, mirrored, zoom = 1 }) => {
   const hostRef = useRef<HTMLSpanElement>(null);
-  const inputs = useRef({heads,sourceWidth,sourceHeight,mirrored});
+  const inputs = useRef({heads,sourceWidth,sourceHeight,mirrored,zoom});
   const redraw = useRef<() => void>();
-  useEffect(() => { inputs.current={heads,sourceWidth,sourceHeight,mirrored}; redraw.current?.(); },[heads,sourceWidth,sourceHeight,mirrored]);
+  useEffect(() => { inputs.current={heads,sourceWidth,sourceHeight,mirrored,zoom}; redraw.current?.(); },[heads,sourceWidth,sourceHeight,mirrored,zoom]);
   useEffect(() => {
     const host = hostRef.current;
     if (!host || settings.id === 'none') return;
@@ -19,7 +19,7 @@ export const AnimatedOverlay: React.FC<{ settings: AnimationSettings; time?: num
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const draw = (seconds: number) => {
       const input=inputs.current;
-      const anchors=input.heads && input.sourceWidth && input.sourceHeight ? projectHeadAnchors(input.heads,input.sourceWidth,input.sourceHeight,width,height,input.mirrored) : input.heads;
+      const anchors=input.heads && input.sourceWidth && input.sourceHeight ? projectHeadAnchors(input.heads,input.sourceWidth,input.sourceHeight,width,height,input.mirrored,input.zoom) : input.heads;
       host.innerHTML = createAnimationArtwork(settings, width, height, seconds,anchors);
     };
     redraw.current=()=>draw(time ?? (motion.matches ? 2.4 : performance.now()/1000));

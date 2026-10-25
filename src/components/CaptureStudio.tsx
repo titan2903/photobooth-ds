@@ -6,7 +6,9 @@ import {
   RotateCcw, 
   Check, 
   ArrowRight,
-  AlertCircle 
+  AlertCircle,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { AnimationSettings, CapturedPhoto, FilterId, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
@@ -18,6 +20,7 @@ import { HeadPhotoOverlay } from './HeadPhotoOverlay';
 import { useHeadTracking } from '../hooks/useHeadTracking';
 import { isHeadAnimation } from '../config/animations';
 import { useCamera } from '../hooks/useCamera';
+import { MIN_CAMERA_ZOOM, MAX_CAMERA_ZOOM, CAMERA_ZOOM_STEP } from '../utils/cameraZoom';
 import { createCapturedPhoto } from '../utils/photoSession';
 import { playCountdownBeep, playShutterSound } from '../utils/audio';
 
@@ -42,6 +45,8 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
 }) => {
   const {
     videoRef,
+    zoom,
+    setZoom,
     isReady,
     error,
     devices,
@@ -168,13 +173,13 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
               muted
               style={{
                 filter: activeFilterConfig.cssFilter,
-                transform: isMirrored ? 'scaleX(-1)' : 'none',
+                transform: `scale(${isMirrored ? -zoom : zoom}, ${zoom})`,
               }}
               className="w-full h-full object-cover"
             />
 
             <FilterEffects filter={activeFilterConfig} />
-            <AnimatedOverlay settings={animation} heads={headEffect ? tracking.heads : undefined} sourceWidth={videoRef.current?.videoWidth} sourceHeight={videoRef.current?.videoHeight} mirrored={isMirrored} />
+            <AnimatedOverlay settings={animation} heads={headEffect ? tracking.heads : undefined} sourceWidth={videoRef.current?.videoWidth} sourceHeight={videoRef.current?.videoHeight} mirrored={isMirrored} zoom={zoom} />
 
             {/* Error Message */}
             {error && (
@@ -284,6 +289,15 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                 </button>
               )}
             </div>
+          </div>
+
+          <div className="camera-zoom-controls" role="group" aria-label="Zoom kamera">
+            <button type="button" onClick={()=>setZoom(zoom-CAMERA_ZOOM_STEP)} disabled={!isReady||zoom<=MIN_CAMERA_ZOOM} aria-label="Zoom out kamera"><ZoomOut size={17}/></button>
+            <label className="camera-zoom-slider"><span>Zoom kamera</span><input type="range" aria-label="Tingkat zoom kamera" min={MIN_CAMERA_ZOOM} max={MAX_CAMERA_ZOOM} step={CAMERA_ZOOM_STEP} value={zoom} onChange={event=>setZoom(Number(event.target.value))} disabled={!isReady}/></label>
+            <output aria-label="Zoom saat ini">{zoom.toFixed(1)}×</output>
+            <button type="button" onClick={()=>setZoom(zoom+CAMERA_ZOOM_STEP)} disabled={!isReady||zoom>=MAX_CAMERA_ZOOM} aria-label="Zoom in kamera"><ZoomIn size={17}/></button>
+            <button type="button" className="camera-zoom-reset" onClick={()=>setZoom(1)} disabled={!isReady||zoom===1}>Reset</button>
+            <small>Zoom digital · zoom out hingga 1×</small>
           </div>
 
           {headEffect && isReady && <div className={`head-tracking-status head-tracking-${tracking.status}`} role="status">

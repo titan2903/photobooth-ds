@@ -1,11 +1,13 @@
 import { HeadAnchor } from '../types/photobooth';
+import { getCoverCrop } from './cameraZoom';
 
 /** Apply the same centered object-cover crop used by the camera and photo renderer. */
-export function projectHeadAnchors(heads: HeadAnchor[], sourceWidth: number, sourceHeight: number, width: number, height: number, mirrored = false): HeadAnchor[] {
-  if (Math.min(sourceWidth,sourceHeight,width,height) <= 0) return [];
-  const scale = Math.max(width/sourceWidth,height/sourceHeight);
-  const offsetX = (sourceWidth*scale-width)/2;
-  const offsetY = (sourceHeight*scale-height)/2;
+export function projectHeadAnchors(heads: HeadAnchor[], sourceWidth: number, sourceHeight: number, width: number, height: number, mirrored = false, zoom = 1): HeadAnchor[] {
+  const crop=getCoverCrop(sourceWidth,sourceHeight,width,height,zoom);
+  if(!crop)return [];
+  const scale=crop.scale;
+  const offsetX=crop.x*scale;
+  const offsetY=crop.y*scale;
   return heads.map(head => {
     const x = (head.x*sourceWidth*scale-offsetX)/width;
     const point = (value?: {x:number;y:number}) => {

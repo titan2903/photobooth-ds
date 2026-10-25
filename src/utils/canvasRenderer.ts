@@ -1,5 +1,6 @@
 import { CapturedPhoto, FrameTheme, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
+import { getCoverCrop } from './cameraZoom';
 import { createAnimationArtwork } from './animatedEffects';
 import { isHeadAnimation } from '../config/animations';
 import { projectHeadAnchors } from './headGeometry';
@@ -15,28 +16,15 @@ export function drawImageCover(
   y: number,
   targetWidth: number,
   targetHeight: number,
-  isMirrored = false
+  isMirrored = false,
+  zoom = 1
 ) {
   const imgWidth = (img instanceof HTMLVideoElement) ? img.videoWidth : img.width;
   const imgHeight = (img instanceof HTMLVideoElement) ? img.videoHeight : img.height;
 
-  if (!imgWidth || !imgHeight) return;
-
-  const targetRatio = targetWidth / targetHeight;
-  const imgRatio = imgWidth / imgHeight;
-
-  let sWidth = imgWidth;
-  let sHeight = imgHeight;
-  let sx = 0;
-  let sy = 0;
-
-  if (imgRatio > targetRatio) {
-    sWidth = imgHeight * targetRatio;
-    sx = (imgWidth - sWidth) / 2;
-  } else {
-    sHeight = imgWidth / targetRatio;
-    sy = (imgHeight - sHeight) / 2;
-  }
+  const crop=getCoverCrop(imgWidth,imgHeight,targetWidth,targetHeight,zoom);
+  if(!crop)return;
+  const {x:sx,y:sy,width:sWidth,height:sHeight}=crop;
 
   ctx.save();
   if (isMirrored) {

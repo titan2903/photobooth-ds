@@ -312,3 +312,14 @@
 .gif-export-preview span { font-size: 10px; color: var(--studio-400); }
 .gif-export-panel :is(button,a,select):focus-visible { outline: 2px solid #9c8cde; outline-offset: 3px; }
 @media(max-width: 400px) { .gif-export-options { grid-template-columns: 1fr; } }
+
+.camera-zoom-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 15px; border: 1px solid var(--studio-800); border-radius: 12px; background: var(--studio-900); color: var(--studio-300); }
+.camera-zoom-controls button { display: grid; place-items: center; min-height: 36px; min-width: 36px; border: 1px solid var(--studio-800); border-radius: 8px; background: var(--studio-950); cursor: pointer; }
+.camera-zoom-controls button:disabled, .camera-zoom-controls input:disabled { opacity: .4; cursor: default; }
+.camera-zoom-slider { flex: 1; min-width: 100px; display: flex; flex-direction: column; gap: 7px; }
+.camera-zoom-slider span { font-size: 10px; color: var(--studio-400); }
+.camera-zoom-slider input { width: 100%; cursor: pointer; accent-color: #c96687; }
+.camera-zoom-controls output { min-width: 34px; font-family: 'Space Grotesk',monospace; font-size: 12px; color: var(--studio-strong); }
+.camera-zoom-controls .camera-zoom-reset { padding: 0 10px; font-size: 11px; }
+.camera-zoom-controls small { flex-basis: 100%; color: var(--studio-500); font-size: 9px; }
+.camera-zoom-controls :is(button,input):focus-visible { outline: 2px solid #c96687; outline-offset: 3px; }

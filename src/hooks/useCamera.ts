@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { drawImageCover } from '../utils/canvasRenderer';
+import { clampCameraZoom } from '../utils/cameraZoom';
 
 export interface UseCameraOptions {
   idealWidth?: number;
@@ -10,6 +11,14 @@ export function useCamera(options: UseCameraOptions = {}) {
   const { idealWidth = 1280, idealHeight = 720 } = options;
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const zoomRef=useRef(1);
+  const [zoom,setZoomState]=useState(1);
+  const setZoom=useCallback((value:number)=>{
+    const next=clampCameraZoom(value);
+    zoomRef.current=next;
+    setZoomState(next);
+  },[]);
+
   const streamRef = useRef<MediaStream | null>(null);
 
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
@@ -49,6 +58,7 @@ export function useCamera(options: UseCameraOptions = {}) {
   const startStream = useCallback(async (deviceId?: string) => {
     stopStream();
     setError(null);
+    setZoom(1);
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -85,7 +95,7 @@ export function useCamera(options: UseCameraOptions = {}) {
       setError(message);
       setIsReady(false);
     }
-  }, [idealWidth, idealHeight, stopStream, refreshDevices]);
+  }, [idealWidth, idealHeight, stopStream, refreshDevices, setZoom]);
 
   // Capture current video frame to DataURL
   const captureFrame = useCallback((targetWidth = 1000, targetHeight = 1250): string | null => {
@@ -98,7 +108,7 @@ export function useCamera(options: UseCameraOptions = {}) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    drawImageCover(ctx, video, 0, 0, targetWidth, targetHeight, isMirrored);
+    drawImageCover(ctx, video, 0, 0, targetWidth, targetHeight, isMirrored, zoomRef.current);
     return canvas.toDataURL('image/jpeg', 0.95);
   }, [isReady, isMirrored]);
 
@@ -111,6 +121,8 @@ export function useCamera(options: UseCameraOptions = {}) {
 
   return {
     videoRef,
+    zoom,
+    setZoom,
     isReady,
     error,
     devices,
