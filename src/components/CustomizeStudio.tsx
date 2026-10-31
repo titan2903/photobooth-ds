@@ -20,8 +20,8 @@ import { FILTERS } from '../config/filters';
 import { FilterEffects } from './FilterEffects';
 import { HeadPhotoOverlay } from './HeadPhotoOverlay';
 import { rotatePhotos, updatePhotoEffects } from '../utils/photoSession';
-import { isStripRatio, planA4Sheet, renderA4Sheet, SheetMode } from '../utils/printSheet';
-import { getFrameCanvasSize } from '../utils/frameArtwork';
+import { planA4Sheet, renderA4Sheet, SheetMode } from '../utils/printSheet';
+import { getFrameCanvasSize, getImageArtwork } from '../utils/frameArtwork';
 
 interface CustomizeStudioProps {
   layout: LayoutConfig;
@@ -41,10 +41,11 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
   const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>(photos);
   const [selectedTheme, setSelectedTheme] = useState<FrameTheme>(initialTheme);
   const frameSize = getFrameCanvasSize(layout, selectedTheme);
-  const isStrip = isStripRatio(frameSize.width / frameSize.height);
+  const isStrip = layout.gridColumns === 1;
   const [sheetMode, setSheetMode] = useState<SheetMode>('design');
   const [borderless, setBorderless] = useState(false);
-  const copiesPerSheet = planA4Sheet(frameSize.width, frameSize.height, sheetMode, borderless).items.length;
+  const printMode: SheetMode = isStrip ? sheetMode : 'save';
+  const copiesPerSheet = planA4Sheet(frameSize.width, frameSize.height, printMode, borderless).items.length;
   const [customHex, setCustomHex] = useState<string>(initialTheme.bgValue);
   const [selectedPhotoId,setSelectedPhotoId]=useState(photos[0]?.id);
   const activePhoto=currentPhotos.find(photo=>photo.id===selectedPhotoId) ?? currentPhotos[0];
@@ -134,7 +135,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
     if (!strip) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    const sheet = renderA4Sheet(strip, planA4Sheet(strip.width, strip.height, sheetMode, borderless));
+    const sheet = renderA4Sheet(strip, planA4Sheet(strip.width, strip.height, printMode, borderless));
     printWindow.document.write(`
       <html>
         <head>
@@ -146,7 +147,8 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
           </style>
         </head>
         <body>
-          <img src="${sheet.toDataURL('image/png')}" onload="window.print(); window.close();" />
+          <img src="${sheet.toDataURL('image/png')}" onload="window.print()" />
+          <script>window.onafterprint = () => window.close();</script>
         </body>
       </html>
     `);
@@ -274,8 +276,8 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
                 <label>
                   <span>Susunan A4</span>
                   <select value={sheetMode} onChange={event => setSheetMode(event.target.value as SheetMode)}>
-                    <option value="design">Seperti desain (5 strip mendatar)</option>
-                    <option value="save">Hemat kertas (8 strip, tanpa sisa)</option>
+                    <option value="design">Seperti desain (strip mendatar)</option>
+                    <option value="save">Hemat kertas (tanpa sisa)</option>
                   </select>
                 </label>
               )}
@@ -315,8 +317,8 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
             <FilterPicker selectedFilter={activePhoto.filter} onSelect={filter=>setCurrentPhotos(prev=>updatePhotoEffects(prev,activePhoto.id,{filter}))} previewPhoto={activePhoto.dataUrl} />
           </>}
 
-          {/* Typography & Caption Settings */}
-          <div className="bg-studio-900/70 border border-studio-800 rounded-2xl p-5">
+          {/* Typography & Caption Settings (image frames carry their own text) */}
+          {!getImageArtwork(layout, selectedTheme) && <div className="bg-studio-900/70 border border-studio-800 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <Type className="w-4 h-4 text-purple-400" />
               <h3 className="font-heading font-bold text-sm text-studio-strong">Teks & Stempel Waktu</h3>
@@ -362,7 +364,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
                 </label>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
     </div>

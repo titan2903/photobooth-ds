@@ -12,10 +12,12 @@ export interface SheetItem { x: number; y: number; width: number; height: number
 export interface SheetPlan { items: SheetItem[]; cutsX: number[]; cutsY: number[] }
 
 /** Tall strips (e.g. 4-cut) can use the stacked "design" sheet; cards cannot. */
-export const isStripRatio = (ratio: number) => ratio < 0.5;
+/** Tall strips (e.g. 4-cut) get 4 columns in the paper-saving grid; anything wider gets A6 cells. */
+const isStripRatio = (ratio: number) => ratio < 0.5;
 
 /**
- * design: copies rotated sideways and stacked in one column (the event's Canva layout).
+ * design: portrait copies rotated sideways and stacked in one column (the event's Canva layout),
+ *   at full strip length, as many as fit (max 5).
  * save: A4 cut into equal cells with no leftover paper — 4×2 strips or 2×2 A6 cards.
  * Items are in sheet coordinates; a rotated item shows the image turned 90° clockwise.
  */
@@ -26,16 +28,16 @@ export function planA4Sheet(imageWidth: number, imageHeight: number, mode: Sheet
   const usableH = A4.height - margin * 2;
   const items: SheetItem[] = [];
 
-  if (mode === 'design' && isStripRatio(ratio)) {
+  if (mode === 'design' && ratio < 1) {
     // Rotated strip: its length runs across the page, its width is the row height.
     let length = Math.min(STRIP_LENGTH, usableW);
-    const fits = (len: number) => DESIGN_COPIES * len * ratio + (DESIGN_COPIES - 1) * DESIGN_GAP <= usableH;
-    if (!fits(length)) length = (usableH - (DESIGN_COPIES - 1) * DESIGN_GAP) / (DESIGN_COPIES * ratio);
+    let copies = Math.min(DESIGN_COPIES, Math.floor((usableH + DESIGN_GAP) / (length * ratio + DESIGN_GAP)));
+    if (copies < 1) { copies = 1; length = usableH / ratio; }
     const thickness = length * ratio;
-    const blockH = DESIGN_COPIES * thickness + (DESIGN_COPIES - 1) * DESIGN_GAP;
+    const blockH = copies * thickness + (copies - 1) * DESIGN_GAP;
     const x = (A4.width - length) / 2;
     const top = (A4.height - blockH) / 2;
-    for (let i = 0; i < DESIGN_COPIES; i++) items.push({ x, y: top + i * (thickness + DESIGN_GAP), width: length, height: thickness, rotated: true });
+    for (let i = 0; i < copies; i++) items.push({ x, y: top + i * (thickness + DESIGN_GAP), width: length, height: thickness, rotated: true });
     const cutsY = items.flatMap(item => [item.y, item.y + item.height]);
     return { items, cutsX: [x, x + length], cutsY };
   }

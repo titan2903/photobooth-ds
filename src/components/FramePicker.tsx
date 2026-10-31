@@ -20,7 +20,7 @@ export const FramePicker: React.FC<FramePickerProps> = ({ layout, selectedTheme,
   const [tier, setTier] = useState('all');
   const [category, setCategory] = useState('Semua');
   // Image frames fit one layout: elsewhere they can only be picked if we may switch the layout.
-  const otherLayout = (theme: FrameTheme) => theme.artwork && !theme.artwork.layouts.includes(layout.id) ? theme.artwork.layouts.at(-1) : undefined;
+  const otherLayout = (theme: FrameTheme) => theme.artwork && !theme.artwork.layouts.includes(layout.id) ? theme.artwork.layouts[theme.artwork.layouts.length - 1] : undefined;
   const available = FRAME_THEMES.filter(theme => !otherLayout(theme) || onSelectLayout);
   const thumbnails = useMemo(() => new Map(FRAME_THEMES.map(theme => [theme.id, theme.artwork?.preview ?? createFrameThumbnail(layout, theme)])), [layout]);
   const themes = available.filter(theme => (category === 'Semua' || theme.category === category) && (tier === 'all' || theme.tier === tier));

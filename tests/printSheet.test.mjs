@@ -37,6 +37,13 @@ test('landscape cards are turned to fill portrait A6 cells',()=>{
   assert.ok(card.height>140,`wide strip prints ${card.width}x${card.height}mm`);
 });
 
-test('cards never use the rotated design sheet',()=>{
-  assert.ok(planA4Sheet(800,1000,'design',false).items.every(i=>!i.rotated));
+test('design mode keeps full strip length and fits as many copies as A4 allows',()=>{
+  // Cross The World strips: 3 photos 592x1457, 2 photos 592x1132 (wider than a classic strip).
+  for(const [w,h,copies] of [[592,1457,4],[592,1132,3]]){
+    const plan=planA4Sheet(w,h,'design',false);
+    assert.equal(plan.items.length,copies,`${w}x${h}`);
+    assert.ok(plan.items.every(i=>i.rotated&&Math.abs(i.width-148.5)<1e-9));
+    assert.ok(insideA4(plan,5)&&noOverlap(plan));
+  }
 });
+

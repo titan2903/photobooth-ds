@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { FrameTheme, LayoutConfig, LayoutId } from '../types/photobooth';
 import { LAYOUTS } from '../config/layouts';
-import { FRAME_THEMES } from '../config/themes';
+import { FRAME_THEMES, SOLID_THEMES } from '../config/themes';
+import { getFrameCanvasSize, getFrameGeometry, getImageArtwork } from '../utils/frameArtwork';
 import { FramePicker } from './FramePicker';
 import { FrameBadge } from './FrameBadge';
 import { ArrowRight, Check, Camera, Earth, Waypoints, Handshake } from 'lucide-react';
@@ -31,18 +32,19 @@ const gallery: { id: LayoutId; category: Category; tone: string; label?: string 
 ];
 
 // Use the export geometry so the thumbnail matches the final photo arrangement.
-function StripPreview({ layout }: { layout: LayoutConfig }) {
-  const rows = Math.ceil(layout.photoCount / layout.gridColumns);
-  const photoWidth = (layout.canvasWidth - layout.borderWidth * 2 - layout.spacing * (layout.gridColumns - 1)) / layout.gridColumns;
-  const photoHeight = (layout.canvasHeight - layout.borderWidth * 2 - layout.spacing * (rows - 1) - layout.bottomPadding) / rows;
+// An image frame changes the strip's height and photo slots, so preview it with that frame; otherwise a plain frame.
+function StripPreview({ layout, frame }: { layout: LayoutConfig; frame: FrameTheme }) {
+  const theme = getImageArtwork(layout, frame) ? frame : SOLID_THEMES[0];
+  const size = getFrameCanvasSize(layout, theme);
+  const { windows } = getFrameGeometry(layout, theme);
   return (
-    <div className="layout-paper" style={{ aspectRatio: `${layout.canvasWidth} / ${layout.canvasHeight}` }}>
-      {Array.from({ length: layout.photoCount }, (_, index) => (
+    <div className="layout-paper" style={{ aspectRatio: `${size.width} / ${size.height}` }}>
+      {windows.map((slot, index) => (
         <div key={index} className={`layout-photo layout-photo-${index % 3}`} style={{
-          left: `${(layout.borderWidth + (index % layout.gridColumns) * (photoWidth + layout.spacing)) / layout.canvasWidth * 100}%`,
-          top: `${(layout.borderWidth + Math.floor(index / layout.gridColumns) * (photoHeight + layout.spacing)) / layout.canvasHeight * 100}%`,
-          width: `${photoWidth / layout.canvasWidth * 100}%`,
-          height: `${photoHeight / layout.canvasHeight * 100}%`,
+          left: `${slot.x / size.width * 100}%`,
+          top: `${slot.y / size.height * 100}%`,
+          width: `${slot.width / size.width * 100}%`,
+          height: `${slot.height / size.height * 100}%`,
         }}>
           <svg viewBox="0 0 120 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
             <circle cx="95" cy="18" r="12" fill="white" opacity=".35" />
@@ -98,12 +100,16 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({ selectedLayout, 
               aria-pressed={isSelected} onClick={() => {
                 onSelectLayout(item.id);
                 // An image frame only fits its own layout, so drop it rather than print a plain fallback.
-                if (selectedFrame.artwork && !selectedFrame.artwork.layouts.includes(item.id)) onSelectFrame(FRAME_THEMES.find(theme => !theme.artwork)!);
+                if (selectedFrame.artwork && !selectedFrame.artwork.layouts.includes(item.id)) {
+                  const fallback = FRAME_THEMES.find(theme => !theme.artwork)!;
+                  onSelectFrame(fallback);
+                  setCustomHex(fallback.bgValue);
+                }
               }}>
               <div className={`layout-card-art tone-${item.tone}`}>
                 {item.label && <span className="layout-card-badge">{item.label}</span>}
                 <span className={`layout-selection ${isSelected ? 'is-selected' : ''}`} aria-hidden="true">{isSelected && <Check size={14} strokeWidth={3} />}</span>
-                <div className={`layout-preview layout-preview-${layout.id}`}><StripPreview layout={layout} /></div>
+                <div className={`layout-preview layout-preview-${layout.id}`}><StripPreview layout={layout} frame={selectedFrame} /></div>
                 <span className="layout-art-star" aria-hidden="true">✧</span>
                 <span className="layout-art-note" aria-hidden="true">make it a memory</span>
               </div>
