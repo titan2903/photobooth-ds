@@ -2,7 +2,6 @@
 export const A4 = { width: 210, height: 297 };
 export const PRINT_DPI = 300;
 const PRINTER_MARGIN = 5; // typical non-borderless margin of home/office printers
-const GAP = 3; // gutter between copies, room for the cut
 
 /** Copies per A4 sheet offered to the user. */
 export const SHEET_COPIES = [2, 4, 5, 6, 8] as const;
@@ -27,8 +26,8 @@ export function planA4Sheet(imageWidth: number, imageHeight: number, copies: num
   for (let cols = 1; cols <= copies; cols++) {
     if (copies % cols) continue;
     const rows = copies / cols;
-    const cellW = (usableW - (cols - 1) * GAP) / cols;
-    const cellH = (usableH - (rows - 1) * GAP) / rows;
+    const cellW = usableW / cols;
+    const cellH = usableH / rows;
     for (const rotated of [false, true]) {
       const sheetRatio = rotated ? 1 / ratio : ratio;
       const width = Math.min(cellW, cellH * sheetRatio);
@@ -37,19 +36,43 @@ export function planA4Sheet(imageWidth: number, imageHeight: number, copies: num
     }
   }
 
-  // Copies sit edge-aligned in one centered block, so every cut runs straight across the sheet.
+  // Copies touch in one centered block: neighbours share a single straight cut (the usual photobooth sheet).
   const { cols, rows, width, height, rotated } = best;
-  const left = (A4.width - (cols * width + (cols - 1) * GAP)) / 2;
-  const top = (A4.height - (rows * height + (rows - 1) * GAP)) / 2;
+  const left = (A4.width - cols * width) / 2;
+  const top = (A4.height - rows * height) / 2;
   const items: SheetItem[] = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    items.push({ x: left + c * (width + GAP), y: top + r * (height + GAP), width, height, rotated });
+    items.push({ x: left + c * width, y: top + r * height, width, height, rotated });
   }
   return {
     items,
-    cutsX: Array.from({ length: cols }, (_, c) => [left + c * (width + GAP), left + c * (width + GAP) + width]).flat(),
-    cutsY: Array.from({ length: rows }, (_, r) => [top + r * (height + GAP), top + r * (height + GAP) + height]).flat(),
+    cutsX: Array.from({ length: cols + 1 }, (_, c) => left + c * width),
+    cutsY: Array.from({ length: rows + 1 }, (_, r) => top + r * height),
   };
+}
+
+/** Options below this share of the sheet waste too much paper to offer. */
+export const MIN_COVERAGE = 0.6;
+const TIE = 0.02;
+
+export interface SheetOption { copies: SheetCopies; plan: SheetPlan; coverage: number; recommended: boolean }
+
+/**
+ * The copy counts worth offering for this image: those that fill at least MIN_COVERAGE of A4
+ * (the best one is always kept), with the fullest sheet marked as recommended.
+ */
+export function getSheetOptions(imageWidth: number, imageHeight: number, borderless: boolean): SheetOption[] {
+  const all = SHEET_COPIES.map(copies => {
+    const plan = planA4Sheet(imageWidth, imageHeight, copies, borderless);
+    const { width, height } = plan.items[0];
+    return { copies, plan, coverage: copies * width * height / (A4.width * A4.height), recommended: false };
+  });
+  // Near-equal paper use (within TIE): more copies per sheet wins, so a group gets one each.
+  const top = Math.max(...all.map(option => option.coverage));
+  const close = all.filter(option => option.coverage >= top - TIE);
+  const best = close[close.length - 1];
+  best.recommended = true;
+  return all.filter(option => option === best || option.coverage >= MIN_COVERAGE);
 }
 
 /** Draws the plan onto a 300 DPI A4 canvas. Cut lines go first so photos cover them. */

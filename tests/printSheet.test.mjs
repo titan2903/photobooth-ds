@@ -4,7 +4,7 @@ import { createServer } from 'vite';
 
 const server=await createServer({configFile:false,server:{middlewareMode:true,hmr:false,ws:false,watch:null},optimizeDeps:{noDiscovery:true,include:[]},appType:'custom'});
 after(()=>server.close());
-const {planA4Sheet,A4,SHEET_COPIES}=await server.ssrLoadModule('/src/utils/printSheet.ts');
+const {planA4Sheet,getSheetOptions,MIN_COVERAGE,A4,SHEET_COPIES}=await server.ssrLoadModule('/src/utils/printSheet.ts');
 
 const insideA4=(plan,margin)=>plan.items.every(i=>i.x>=margin-1e-9&&i.y>=margin-1e-9&&i.x+i.width<=A4.width-margin+1e-9&&i.y+i.height<=A4.height-margin+1e-9);
 const noOverlap=plan=>plan.items.every((a,i)=>plan.items.every((b,j)=>i===j||a.x+a.width<=b.x+1e-9||b.x+b.width<=a.x+1e-9||a.y+a.height<=b.y+1e-9||b.y+b.height<=a.y+1e-9));
@@ -35,11 +35,28 @@ test('4-cut strip picks the arrangement that makes each copy biggest',()=>{
   for(const n of [6,8]){ assert.ok(plan(n).items.every(i=>!i.rotated)); assert.ok(long(plan(n))>135); }
 });
 
-test('cut lines run along every copy edge',()=>{
+test('neighbouring copies share one cut line, and every copy edge has one',()=>{
   const plan=planA4Sheet(624,1800,8,true);
+  assert.equal(plan.cutsX.length,5); assert.equal(plan.cutsY.length,3);
   const on=(lines,v)=>lines.some(l=>Math.abs(l-v)<1e-9);
   for(const i of plan.items){
     assert.ok(on(plan.cutsX,i.x)&&on(plan.cutsX,i.x+i.width));
     assert.ok(on(plan.cutsY,i.y)&&on(plan.cutsY,i.y+i.height));
   }
+});
+
+test('only options that fill enough paper are offered, and the fullest one is recommended',()=>{
+  for(const [w,h] of SHAPES) for(const borderless of [true,false]){
+    const options=getSheetOptions(w,h,borderless);
+    const where=`${w}x${h} borderless=${borderless}`;
+    const recommended=options.filter(o=>o.recommended);
+    assert.equal(recommended.length,1,where);
+    const all=SHEET_COPIES.map(n=>{const i=planA4Sheet(w,h,n,borderless).items[0];return n*i.width*i.height/(A4.width*A4.height);});
+    assert.ok(recommended[0].coverage>=Math.max(...all)-0.02-1e-9,where);
+    assert.ok(options.every(o=>o.recommended||o.coverage>=MIN_COVERAGE),where);
+  }
+  // Classic 4-Cut: 2 and 8 fill the sheet equally, so 8 copies is recommended.
+  assert.equal(getSheetOptions(624,1800,false).find(o=>o.recommended).copies,8);
+  // Single column of 5 wastes most of the sheet for Duo Mini and cards, so it is not offered.
+  for(const [w,h] of [[592,960],[800,1000],[1200,1800]]) assert.ok(!getSheetOptions(w,h,false).some(o=>o.copies===5),`${w}x${h}`);
 });

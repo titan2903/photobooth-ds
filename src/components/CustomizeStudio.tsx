@@ -20,7 +20,7 @@ import { FILTERS } from '../config/filters';
 import { FilterEffects } from './FilterEffects';
 import { HeadPhotoOverlay } from './HeadPhotoOverlay';
 import { rotatePhotos, updatePhotoEffects } from '../utils/photoSession';
-import { planA4Sheet, renderA4Sheet, SHEET_COPIES, SheetCopies } from '../utils/printSheet';
+import { getSheetOptions, renderA4Sheet, SheetCopies } from '../utils/printSheet';
 import { getFrameCanvasSize, getImageArtwork } from '../utils/frameArtwork';
 
 interface CustomizeStudioProps {
@@ -42,18 +42,18 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
   const [selectedTheme, setSelectedTheme] = useState<FrameTheme>(initialTheme);
   const frameSize = getFrameCanvasSize(layout, selectedTheme);
   const isStrip = layout.gridColumns === 1;
-  const [copies, setCopies] = useState<SheetCopies>(isStrip ? 5 : 4);
+  // null = follow the recommended option, which changes with layout, frame and borderless.
+  const [chosenCopies, setChosenCopies] = useState<SheetCopies | null>(null);
   const [borderless, setBorderless] = useState(false);
   const copyUnit = isStrip ? 'strip' : 'kartu';
-  // Real printed size of one copy per option, so people pick by size, not by guess.
-  const sheetOptions = SHEET_COPIES.map(count => {
-    const item = planA4Sheet(frameSize.width, frameSize.height, count, borderless).items[0];
+  const sheetOptions = useMemo(() => getSheetOptions(frameSize.width, frameSize.height, borderless), [frameSize.width, frameSize.height, borderless]);
+  const activeOption = sheetOptions.find(option => option.copies === chosenCopies) ?? sheetOptions.find(option => option.recommended)!;
+  // Real printed size of one copy, so people pick by size, not by guess.
+  const optionLabel = (option: typeof activeOption) => {
+    const { width, height } = option.plan.items[0];
     const cm = (mm: number) => (mm / 10).toFixed(1).replace('.', ',');
-    const [short, long] = [Math.min(item.width, item.height), Math.max(item.width, item.height)];
-    const used = Math.round(count * item.width * item.height / (210 * 297) * 100);
-    return { count, label: `${count} ${copyUnit} · ${cm(short)} × ${cm(long)} cm`, used };
-  });
-  const activeOption = sheetOptions.find(option => option.count === copies)!;
+    return `${option.copies} ${copyUnit} · ${cm(Math.min(width, height))} × ${cm(Math.max(width, height))} cm${option.recommended ? ' (rekomendasi)' : ''}`;
+  };
   const [customHex, setCustomHex] = useState<string>(initialTheme.bgValue);
   const [selectedPhotoId,setSelectedPhotoId]=useState(photos[0]?.id);
   const activePhoto=currentPhotos.find(photo=>photo.id===selectedPhotoId) ?? currentPhotos[0];
@@ -143,7 +143,7 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
     if (!strip) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-    const sheet = renderA4Sheet(strip, planA4Sheet(strip.width, strip.height, copies, borderless));
+    const sheet = renderA4Sheet(strip, activeOption.plan);
     printWindow.document.write(`
       <html>
         <head>
@@ -282,15 +282,15 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
             <div className="print-sheet-options" role="group" aria-label="Pengaturan cetak A4">
               <label>
                 <span>Jumlah per lembar A4</span>
-                <select value={copies} onChange={event => setCopies(Number(event.target.value) as SheetCopies)}>
-                  {sheetOptions.map(option => <option key={option.count} value={option.count}>{option.label}{isStrip && option.count === 5 ? ' (seperti desain)' : ''}</option>)}
+                <select value={activeOption.copies} onChange={event => setChosenCopies(Number(event.target.value) as SheetCopies)}>
+                  {sheetOptions.map(option => <option key={option.copies} value={option.copies}>{optionLabel(option)}</option>)}
                 </select>
               </label>
               <label className="print-sheet-check">
                 <input type="checkbox" checked={borderless} onChange={event => setBorderless(event.target.checked)} />
                 <span>Printer borderless</span>
               </label>
-              <small>{copies} {copyUnit} per lembar A4 · {activeOption.used}% kertas terpakai · ukuran asli, potong di garis putus-putus. Di dialog cetak pilih kertas A4, skala 100% (matikan "Fit to page").</small>
+              <small>{activeOption.copies} {copyUnit} per lembar A4 · {Math.round(activeOption.coverage * 100)}% kertas terpakai · ukuran asli, potong di garis putus-putus. Di dialog cetak pilih kertas A4, skala 100% (matikan "Fit to page").</small>
             </div>
             <GifExportPanel options={renderOptions} disabled={isRendering || Boolean(renderError)} />
           </div>
