@@ -5,7 +5,7 @@ import crossTheWorldBackground from '../assets/frames/cross-the-world-bg.png';
 export const FRAME_THEMES: FrameTheme[] = [
   { id: 'cross-the-world', tier: 'exclusive', name: 'Cross The World', category: 'Playful',
     description: 'Frame resmi Data Science Gathering 2026. Untuk strip 2, 3, dan 4 foto.',
-    bgValue: '#4b2bd6', textColor: '#ffffff', accentColor: '#7cc6f0',
+    bgValue: '#1f4fd8', textColor: '#ffffff', accentColor: '#7cc6f0',
     // Measured on the 399×1202 Canva export; photos bleed 1px past the original boxes.
     artwork: { src: crossTheWorldBackground, preview: crossTheWorldPreview, layouts: ['strip-2', 'strip-3', 'strip-4'],
       width: 399, height: 1202, headerBottom: 250, footerTop: 1131,
