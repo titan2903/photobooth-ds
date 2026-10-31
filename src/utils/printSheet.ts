@@ -2,63 +2,53 @@
 export const A4 = { width: 210, height: 297 };
 export const PRINT_DPI = 300;
 const PRINTER_MARGIN = 5; // typical non-borderless margin of home/office printers
-const DESIGN_GAP = 6;
-const DESIGN_COPIES = 5;
-const STRIP_LENGTH = A4.height / 2; // 148.5mm, close to the classic 2x6" strip
+const GAP = 3; // gutter between copies, room for the cut
 
-export type SheetMode = 'design' | 'save';
+/** Copies per A4 sheet offered to the user. */
+export const SHEET_COPIES = [2, 4, 5, 6, 8] as const;
+export type SheetCopies = typeof SHEET_COPIES[number];
 
 export interface SheetItem { x: number; y: number; width: number; height: number; rotated: boolean }
 export interface SheetPlan { items: SheetItem[]; cutsX: number[]; cutsY: number[] }
 
-/** Tall strips (e.g. 4-cut) can use the stacked "design" sheet; cards cannot. */
-/** Tall strips (e.g. 4-cut) get 4 columns in the paper-saving grid; anything wider gets A6 cells. */
-const isStripRatio = (ratio: number) => ratio < 0.5;
-
 /**
- * design: portrait copies rotated sideways and stacked in one column (the event's Canva layout),
- *   at full strip length, as many as fit (max 5).
- * save: A4 cut into equal cells with no leftover paper — 4×2 strips or 2×2 A6 cards.
+ * Lays out `copies` equal copies on A4 as large as possible: tries every columns × rows split,
+ * upright and turned 90°, and keeps the biggest copy. E.g. a 4-cut strip gives
+ * 2 → two tall strips, 4/5 → stacked sideways (5 is the event's Canva layout), 6/8 → upright grid.
  * Items are in sheet coordinates; a rotated item shows the image turned 90° clockwise.
  */
-export function planA4Sheet(imageWidth: number, imageHeight: number, mode: SheetMode, borderless: boolean): SheetPlan {
+export function planA4Sheet(imageWidth: number, imageHeight: number, copies: number, borderless: boolean): SheetPlan {
   const ratio = imageWidth / imageHeight;
   const margin = borderless ? 0 : PRINTER_MARGIN;
   const usableW = A4.width - margin * 2;
   const usableH = A4.height - margin * 2;
-  const items: SheetItem[] = [];
 
-  if (mode === 'design' && ratio < 1) {
-    // Rotated strip: its length runs across the page, its width is the row height.
-    let length = Math.min(STRIP_LENGTH, usableW);
-    let copies = Math.min(DESIGN_COPIES, Math.floor((usableH + DESIGN_GAP) / (length * ratio + DESIGN_GAP)));
-    if (copies < 1) { copies = 1; length = usableH / ratio; }
-    const thickness = length * ratio;
-    const blockH = copies * thickness + (copies - 1) * DESIGN_GAP;
-    const x = (A4.width - length) / 2;
-    const top = (A4.height - blockH) / 2;
-    for (let i = 0; i < copies; i++) items.push({ x, y: top + i * (thickness + DESIGN_GAP), width: length, height: thickness, rotated: true });
-    const cutsY = items.flatMap(item => [item.y, item.y + item.height]);
-    return { items, cutsX: [x, x + length], cutsY };
+  let best = { cols: 1, rows: copies, width: 0, height: 0, rotated: false };
+  for (let cols = 1; cols <= copies; cols++) {
+    if (copies % cols) continue;
+    const rows = copies / cols;
+    const cellW = (usableW - (cols - 1) * GAP) / cols;
+    const cellH = (usableH - (rows - 1) * GAP) / rows;
+    for (const rotated of [false, true]) {
+      const sheetRatio = rotated ? 1 / ratio : ratio;
+      const width = Math.min(cellW, cellH * sheetRatio);
+      const height = width / sheetRatio;
+      if (width * height > best.width * best.height + 1e-9) best = { cols, rows, width, height, rotated };
+    }
   }
 
-  const cols = isStripRatio(ratio) ? 4 : 2;
-  const rows = 2;
-  const cellW = usableW / cols;
-  const cellH = usableH / rows;
-  // Cells are portrait, so landscape images are turned to fill them.
-  const rotated = ratio > 1;
-  const sheetRatio = rotated ? 1 / ratio : ratio;
+  // Copies sit edge-aligned in one centered block, so every cut runs straight across the sheet.
+  const { cols, rows, width, height, rotated } = best;
+  const left = (A4.width - (cols * width + (cols - 1) * GAP)) / 2;
+  const top = (A4.height - (rows * height + (rows - 1) * GAP)) / 2;
+  const items: SheetItem[] = [];
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-    // Contain the image in its cell, centered.
-    const width = Math.min(cellW, cellH * sheetRatio);
-    const height = width / sheetRatio;
-    items.push({ x: margin + c * cellW + (cellW - width) / 2, y: margin + r * cellH + (cellH - height) / 2, width, height, rotated });
+    items.push({ x: left + c * (width + GAP), y: top + r * (height + GAP), width, height, rotated });
   }
   return {
     items,
-    cutsX: Array.from({ length: cols + 1 }, (_, i) => margin + i * cellW),
-    cutsY: Array.from({ length: rows + 1 }, (_, i) => margin + i * cellH),
+    cutsX: Array.from({ length: cols }, (_, c) => [left + c * (width + GAP), left + c * (width + GAP) + width]).flat(),
+    cutsY: Array.from({ length: rows }, (_, r) => [top + r * (height + GAP), top + r * (height + GAP) + height]).flat(),
   };
 }
 
