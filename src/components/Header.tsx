@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({ currentStep, onReset, theme, onT
                 STUDIO
               </span>
             </div>
-            <p className="text-[11px] text-studio-400 hidden sm:block">Korean Style Photo Strip Studio</p>
+            <p className="text-[11px] text-studio-400 hidden sm:block">CROSS THE WORLD!!! · Connecting The Dots · Connecting People</p>
           </div>
         </div>
 

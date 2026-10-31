@@ -8,7 +8,7 @@ import { Header } from './components/Header';
 import { LayoutSelector } from './components/LayoutSelector';
 import { CaptureStudio } from './components/CaptureStudio';
 import { CustomizeStudio } from './components/CustomizeStudio';
-import { ShieldCheck, Heart } from 'lucide-react';
+import { ShieldCheck, Earth, Waypoints, Handshake } from 'lucide-react';
 import { useTheme } from './hooks/useTheme';
 
 export const App: React.FC = () => {
@@ -48,6 +48,7 @@ export const App: React.FC = () => {
         {step === 'capture' && (
           <CaptureStudio
             layout={activeLayout}
+            frame={selectedFrame}
             selectedFilter={selectedFilter}
             animation={animation}
             onAnimationChange={setAnimation}
@@ -82,9 +83,12 @@ export const App: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-1">
-            <span>Dibuat dengan</span>
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-            <span>untuk Photobooth Studio</span>
+            <Earth className="w-3.5 h-3.5 text-rose-400" aria-hidden="true" />
+            <span className="font-semibold text-studio-300">CROSS THE WORLD!!!</span>
+            <Waypoints className="w-3.5 h-3.5 ml-2 text-rose-400" aria-hidden="true" />
+            <span>Connecting The Dots</span>
+            <Handshake className="w-3.5 h-3.5 ml-2 text-rose-400" aria-hidden="true" />
+            <span>Connecting People</span>
           </div>
         </div>
       </footer>

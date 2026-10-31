@@ -10,7 +10,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import { AnimationSettings, CapturedPhoto, FilterId, LayoutConfig } from '../types/photobooth';
+import { AnimationSettings, CapturedPhoto, FilterId, FrameTheme, LayoutConfig } from '../types/photobooth';
+import { getFrameGeometry } from '../utils/frameArtwork';
 import { FILTERS } from '../config/filters';
 import { FilterPicker } from './FilterPicker';
 import { FilterEffects } from './FilterEffects';
@@ -26,6 +27,7 @@ import { playCountdownBeep, playShutterSound } from '../utils/audio';
 
 interface CaptureStudioProps {
   layout: LayoutConfig;
+  frame: FrameTheme;
   selectedFilter: FilterId;
   animation: AnimationSettings;
   onAnimationChange: (animation: AnimationSettings) => void;
@@ -36,6 +38,7 @@ interface CaptureStudioProps {
 
 export const CaptureStudio: React.FC<CaptureStudioProps> = ({
   layout,
+  frame,
   selectedFilter,
   animation,
   onAnimationChange,
@@ -56,7 +59,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
     setIsMirrored,
     startStream,
     captureFrame,
-  } = useCamera({ idealWidth: 1280, idealHeight: 960 });
+  } = useCamera();
 
   const headEffect = isHeadAnimation(animation.id);
   const tracking = useHeadTracking(videoRef, headEffect && isReady);
@@ -132,6 +135,19 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
   // Check if session completed
   const isFinished = capturedPhotos.length >= layout.photoCount;
 
+  // Space / Enter shoots, so a keyboard or presenter clicker can run the booth.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.code !== 'Space' && event.code !== 'Enter') return;
+      if ((event.target as HTMLElement).closest('button, input, select, textarea, a')) return;
+      if (isFinished) return;
+      event.preventDefault();
+      startCountdown();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [startCountdown, isFinished]);
+
   // Retake last photo
   const retakeLast = () => {
     setCapturedPhotos((prev) => prev.slice(0, prev.length - 1));
@@ -143,6 +159,14 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
   };
 
   const activeFilterConfig = FILTERS[selectedFilter] || FILTERS.normal;
+
+  // Print guide: the photo window crops the captured frame centered (cover), so show that rectangle.
+  const slot = getFrameGeometry(layout, frame).windows[0];
+  const videoAspect = videoRef.current?.videoWidth ? videoRef.current.videoWidth / videoRef.current.videoHeight : 4 / 3;
+  const slotAspect = slot.width / slot.height;
+  const guide = slotAspect < videoAspect
+    ? { width: `${slotAspect / videoAspect * 100}%`, height: '100%' }
+    : { width: '100%', height: `${videoAspect / slotAspect * 100}%` };
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6">
@@ -164,7 +188,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Main Viewfinder (3 cols) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <div style={videoRef.current?.videoWidth ? { aspectRatio: `${videoRef.current.videoWidth} / ${videoRef.current.videoHeight}` } : undefined} className="camera-preview relative aspect-[4/3] bg-studio-900 rounded-3xl overflow-hidden border border-studio-800 shadow-2xl flex items-center justify-center">
+          <div style={videoRef.current?.videoWidth ? { aspectRatio: `${videoRef.current.videoWidth} / ${videoRef.current.videoHeight}`, maxWidth: `calc(72vh * ${videoRef.current.videoWidth / videoRef.current.videoHeight})` } : { maxWidth: 'calc(72vh * 4 / 3)' }} className="camera-preview relative w-full mx-auto aspect-[4/3] bg-studio-900 rounded-3xl overflow-hidden border border-studio-800 shadow-2xl flex items-center justify-center">
             {/* Live Video */}
             <video
               ref={videoRef}
@@ -180,6 +204,12 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
 
             <FilterEffects filter={activeFilterConfig} />
             <AnimatedOverlay settings={animation} heads={headEffect ? tracking.heads : undefined} sourceWidth={videoRef.current?.videoWidth} sourceHeight={videoRef.current?.videoHeight} mirrored={isMirrored} zoom={zoom} />
+
+            {isReady && (
+              <div aria-hidden="true" className="print-guide" style={guide}>
+                <span>Area cetak</span>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -204,7 +234,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
             {/* Countdown Overlay */}
             {currentCount !== null && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px] z-20 pointer-events-none">
-                <span className="text-8xl sm:text-9xl font-heading font-black text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] scale-125 animate-ping duration-700">
+                <span key={currentCount} aria-live="assertive" className="text-8xl sm:text-9xl font-heading font-black text-white drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] animate-count">
                   {currentCount}
                 </span>
               </div>
@@ -263,10 +293,11 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
             </div>
 
             {/* Shutter Action Bar */}
-            <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center z-10">
-              {!isFinished ? (
+            <div className="absolute bottom-6 left-0 right-0 flex flex-col items-center justify-center gap-2 z-10">
+              {!isFinished ? (<>
                 <button
                   onClick={startCountdown}
+                  aria-label="Ambil foto" 
                   disabled={isCountingDown || !isReady}
                   className="group relative w-18 h-18 rounded-full bg-white/20 backdrop-blur-md p-1.5 transition-transform active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
                 >
@@ -278,7 +309,8 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                     )}
                   </div>
                 </button>
-              ) : (
+                {isReady && !isCountingDown && <span className="hidden sm:block text-[11px] text-white/80 bg-black/35 backdrop-blur-md px-2.5 py-1 rounded-full">atau tekan <kbd className="font-mono-custom font-semibold text-white">Spasi</kbd></span>}
+              </>) : (
                 <button
                   onClick={() => onPhotosComplete(capturedPhotos)}
                   className="flex items-center gap-2 px-6 py-3 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white font-heading font-bold shadow-lg shadow-emerald-500/30 transition-transform active:scale-95"
@@ -349,7 +381,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
                       {idx === capturedPhotos.length - 1 && (
                         <button
                           onClick={retakeLast}
-                          className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1 text-white text-xs font-semibold transition-opacity"
+                          className="absolute bottom-2 right-2 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md hover:bg-rose-500 focus-visible:outline-2 focus-visible:outline-white flex items-center gap-1 text-white text-[11px] font-semibold transition-colors"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           Foto Ulang

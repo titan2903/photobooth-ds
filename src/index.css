@@ -73,6 +73,15 @@
   animation: cameraFlash 0.35s ease-out forwards;
 }
 
+/* Countdown number pops in and stays readable for the whole second. */
+@keyframes countPop {
+  0% { opacity: 0; transform: scale(1.8); }
+  25% { opacity: 1; transform: scale(1); }
+  100% { opacity: .85; transform: scale(.92); }
+}
+.animate-count { animation: countPop 1s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .animate-count { animation: none; } }
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
@@ -102,6 +111,9 @@
 .layout-heading h1 > span:first-child { color: var(--gallery-accent); }
 .layout-heading-star { position: absolute; top: -12px; right: -30px; color: var(--gallery-accent); font-size: 27px; font-weight: 400; }
 .layout-heading p { color: var(--studio-400); font-size: 14px; line-height: 1.7; }
+.layout-heading .layout-slogan { display: flex; justify-content: center; flex-wrap: wrap; gap: 6px 18px; color: var(--studio-strong); font-weight: 600; margin-bottom: -6px; }
+.layout-slogan span { display: inline-flex; align-items: center; gap: 6px; }
+.layout-slogan svg { color: var(--gallery-accent); }
 .layout-categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 35px; }
 .layout-category { padding: 10px 19px; border: 1px solid var(--studio-800); border-radius: 999px; color: var(--studio-400); background: var(--studio-900); font-size: 12px; font-weight: 600; cursor: pointer; transition: background .2s, border-color .2s; }
 .layout-category:hover { border-color: var(--gallery-accent); color: var(--gallery-accent); }
@@ -148,7 +160,7 @@
 .layout-card-info > p { margin-top: 8px; min-height: 36px; color: var(--studio-400); font-size: 11px; line-height: 1.7; }
 .layout-card-bottom { display: flex; justify-content: space-between; align-items: center; gap: 6px; border-top: 1px solid var(--studio-800); margin-top: 14px; padding-top: 12px; font-size: 10px; color: var(--studio-500); }
 .layout-card-link { display: inline-flex; align-items: center; gap: 5px; color: var(--gallery-accent); font-weight: 700; }
-.layout-continue { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 30px; border: 1px solid var(--studio-800); border-radius: 14px; padding: 18px 22px; background: var(--studio-900); }
+.layout-continue { position: sticky; bottom: 12px; z-index: 20; box-shadow: 0 12px 32px rgb(0 0 0 / .35); display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 30px; border: 1px solid var(--studio-800); border-radius: 14px; padding: 18px 22px; background: var(--studio-900); }
 .layout-continue-label { color: var(--studio-500); letter-spacing: 1.4px; font-size: 9px; font-weight: 700; }
 .layout-continue p { margin-top: 5px; color: var(--studio-strong); font-size: 13px; font-weight: 700; }
 .layout-continue p span { color: var(--studio-400); font-weight: 400; }
@@ -323,3 +335,7 @@
 .camera-zoom-controls .camera-zoom-reset { padding: 0 10px; font-size: 11px; }
 .camera-zoom-controls small { flex-basis: 100%; color: var(--studio-500); font-size: 9px; }
 .camera-zoom-controls :is(button,input):focus-visible { outline: 2px solid #c96687; outline-offset: 3px; }
+
+/* Dims what the selected layout will crop away, so the preview matches the print. */
+.print-guide { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; border: 2px dashed rgb(255 255 255 / .75); border-radius: 6px; box-shadow: 0 0 0 9999px rgb(0 0 0 / .45); }
+.print-guide span { position: absolute; left: 8px; bottom: 8px; padding: 2px 8px; border-radius: 999px; background: rgb(0 0 0 / .55); color: #fff; font-size: 10px; letter-spacing: .04em; white-space: nowrap; }

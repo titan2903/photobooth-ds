@@ -3,7 +3,7 @@ import { FrameTheme, LayoutConfig, LayoutId } from '../types/photobooth';
 import { LAYOUTS } from '../config/layouts';
 import { FramePicker } from './FramePicker';
 import { FrameBadge } from './FrameBadge';
-import { ArrowRight, Check, Camera, Sparkles } from 'lucide-react';
+import { ArrowRight, Check, Camera, Earth, Waypoints, Handshake } from 'lucide-react';
 
 interface LayoutSelectorProps {
   selectedLayout: LayoutId;
@@ -69,8 +69,9 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({ selectedLayout, 
   return (
     <section className="layout-gallery mx-auto max-w-6xl px-4 sm:px-6" aria-labelledby="layout-title">
       <div className="layout-heading text-center">
-        <span className="layout-eyebrow"><Sparkles size={14} /> A LITTLE POSE, A LOT OF MEMORIES</span>
+        <span className="layout-eyebrow"><Earth size={14} /> CROSS THE WORLD!!!</span>
         <h1 id="layout-title">choose your <span>layout</span><span className="layout-heading-star" aria-hidden="true">✳</span></h1>
+        <p className="layout-slogan"><span><Waypoints size={16} aria-hidden="true" /> Connecting The Dots</span><span><Handshake size={16} aria-hidden="true" /> Connecting People</span></p>
         <p>Pilih layout favoritmu. Buat setiap momen jadi kenangan.</p>
       </div>
 

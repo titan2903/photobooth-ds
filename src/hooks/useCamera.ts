@@ -8,7 +8,7 @@ export interface UseCameraOptions {
 }
 
 export function useCamera(options: UseCameraOptions = {}) {
-  const { idealWidth = 1280, idealHeight = 720 } = options;
+  const { idealWidth = 1920, idealHeight = 1080 } = options;
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const zoomRef=useRef(1);
@@ -72,7 +72,9 @@ export function useCamera(options: UseCameraOptions = {}) {
           width: { ideal: idealWidth },
           height: { ideal: idealHeight },
           facingMode: deviceId ? undefined : 'user',
-        },
+          // Use a native camera mode: Chrome otherwise crops the sensor to hit the requested aspect ratio (looks zoomed).
+          resizeMode: 'none',
+        } as MediaTrackConstraints,
       };
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
