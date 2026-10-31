@@ -1,4 +1,5 @@
 import { preparePhotoStripRenderer, RenderStripOptions } from './canvasRenderer';
+import { getFrameCanvasSize } from './frameArtwork';
 
 export type GifMode = 'poses' | 'effects';
 export interface GifExportOptions {
@@ -42,9 +43,10 @@ export async function exportPhotoGif(options:RenderStripOptions,settings:GifExpo
     await document.fonts.ready;
     const render=await preparePhotoStripRenderer(snapshot);
     const output=document.createElement('canvas');
-    const scale=Math.min(1,800/Math.max(options.layout.canvasWidth,options.layout.canvasHeight));
-    output.width=Math.max(1,Math.round(options.layout.canvasWidth*scale));
-    output.height=Math.max(1,Math.round(options.layout.canvasHeight*scale));
+    const size=getFrameCanvasSize(options.layout,options.theme);
+    const scale=Math.min(1,800/Math.max(size.width,size.height));
+    output.width=Math.max(1,Math.round(size.width*scale));
+    output.height=Math.max(1,Math.round(size.height*scale));
     const ctx=output.getContext('2d',{willReadFrequently:true});
     if(!ctx)throw new Error('Browser tidak mendukung ekspor gambar.');
     for(let index=0;index<plan.length;index++){

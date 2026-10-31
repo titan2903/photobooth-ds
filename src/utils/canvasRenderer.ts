@@ -1,10 +1,10 @@
-import { CapturedPhoto, FrameTheme, LayoutConfig } from '../types/photobooth';
+import { CapturedPhoto, FrameImageArtwork, FrameTheme, LayoutConfig } from '../types/photobooth';
 import { FILTERS } from '../config/filters';
 import { getCoverCrop } from './cameraZoom';
 import { createAnimationArtwork } from './animatedEffects';
 import { isHeadAnimation } from '../config/animations';
 import { projectHeadAnchors } from './headGeometry';
-import { createFrameArtwork, getFrameGeometry, svgDataUrl } from './frameArtwork';
+import { createFrameArtwork, getArtworkSlices, getFrameCanvasSize, getFrameGeometry, getImageArtwork, svgDataUrl } from './frameArtwork';
 
 /**
  * Draws an image fitted to a container rectangle using cover (center cropped).
@@ -158,8 +158,9 @@ async function renderPreparedPhotoStrip(options:RenderStripOptions, loadedImages
   } = options;
 
   const canvas = document.createElement('canvas');
-  canvas.width = layout.canvasWidth;
-  canvas.height = layout.canvasHeight;
+  const size = getFrameCanvasSize(layout, theme);
+  canvas.width = size.width;
+  canvas.height = size.height;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
   if (!ctx) {
@@ -171,8 +172,11 @@ async function renderPreparedPhotoStrip(options:RenderStripOptions, loadedImages
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   const { unit, windows } = getFrameGeometry(layout, theme);
-  if (theme.design) {
-    const background = await loadArtwork(createFrameArtwork(layout, theme, 'background'));
+  const imageArtwork = getImageArtwork(layout, theme);
+  if (imageArtwork) {
+    drawImageArtwork(ctx, await loadImage(imageArtwork.src), layout, imageArtwork);
+  } else if (theme.design) {
+    const background = await loadImage(svgDataUrl(createFrameArtwork(layout, theme, 'background')));
     ctx.drawImage(background, 0, 0);
   }
   for (let index = 0; index < Math.min(loadedImages.length, windows.length); index++) {
@@ -199,7 +203,7 @@ async function renderPreparedPhotoStrip(options:RenderStripOptions, loadedImages
         heads=projectHeadAnchors(detected,loadedImages[index].width,loadedImages[index].height,photoCanvas.width,photoCanvas.height);
       }
       const artwork = createAnimationArtwork(animation, photoCanvas.width, photoCanvas.height, photo.animationTime + animationOffset, heads);
-      const effectImage = await loadArtwork(artwork);
+      const effectImage = await loadImage(svgDataUrl(artwork));
       photoContext.drawImage(effectImage, 0, 0);
     }
     ctx.save();
@@ -210,9 +214,12 @@ async function renderPreparedPhotoStrip(options:RenderStripOptions, loadedImages
     ctx.restore();
   }
   if (theme.design) {
-    const overlay = await loadArtwork(createFrameArtwork(layout, theme, 'overlay'));
+    const overlay = await loadImage(svgDataUrl(createFrameArtwork(layout, theme, 'overlay')));
     ctx.drawImage(overlay, 0, 0);
   }
+
+  // The image frame carries its own event branding.
+  if (imageArtwork) return canvas;
 
   // 4. Draw Bottom Branding & Date/Time Stamp
   const bottomY = theme.design ? layout.canvasHeight - 56 * unit : layout.canvasHeight - layout.bottomPadding / 2;
@@ -222,7 +229,7 @@ async function renderPreparedPhotoStrip(options:RenderStripOptions, loadedImages
   ctx.textBaseline = 'middle';
 
   // Custom Caption or Studio Brand
-  const mainCaption = caption.trim() || 'PHOTOBOOTH STUDIO';
+  const mainCaption = caption.trim() || 'DATA SCIENCE GATHERING 2026';
   const captionSize = theme.design ? 20 * unit : 24;
   ctx.font = `700 ${captionSize}px "Syne", "Plus Jakarta Sans", sans-serif`;
   ctx.letterSpacing = `${theme.design ? 2 * unit : 3}px`;
@@ -249,11 +256,38 @@ async function renderPreparedPhotoStrip(options:RenderStripOptions, loadedImages
   return canvas;
 }
 
-function loadArtwork(svg: string): Promise<HTMLImageElement> {
+/** Header and footer run ARTWORK_FADE px past their cut and fade out, so the cropped sky has no visible seam. */
+const ARTWORK_FADE = 40;
+function drawImageArtwork(ctx: CanvasRenderingContext2D, image: HTMLImageElement, layout: LayoutConfig, artwork: FrameImageArtwork) {
+  const [header, middle, footer] = getArtworkSlices(layout, artwork);
+  const width = ctx.canvas.width;
+  const scale = width / artwork.width;
+  ctx.drawImage(image, 0, middle.sy, artwork.width, middle.sh, 0, middle.dy, width, middle.dh);
+  const faded = (sy: number, sh: number, dy: number, fadeAtBottom: boolean) => {
+    const layer = document.createElement('canvas');
+    layer.width = width;
+    layer.height = Math.ceil(sh * scale);
+    const layerCtx = layer.getContext('2d');
+    if (!layerCtx) return;
+    layerCtx.drawImage(image, 0, sy, artwork.width, sh, 0, 0, width, sh * scale);
+    const fade = ARTWORK_FADE * scale;
+    const gradient = layerCtx.createLinearGradient(0, fadeAtBottom ? layer.height - fade : 0, 0, fadeAtBottom ? layer.height : fade);
+    gradient.addColorStop(0, fadeAtBottom ? '#000' : 'transparent');
+    gradient.addColorStop(1, fadeAtBottom ? 'transparent' : '#000');
+    layerCtx.globalCompositeOperation = 'destination-in';
+    layerCtx.fillStyle = gradient;
+    layerCtx.fillRect(0, 0, width, layer.height);
+    ctx.drawImage(layer, 0, dy);
+  };
+  faded(header.sy, header.sh + ARTWORK_FADE, header.dy, true);
+  faded(footer.sy - ARTWORK_FADE, footer.sh + ARTWORK_FADE, footer.dy - ARTWORK_FADE * scale, false);
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const image = new Image();
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error('Frame artwork could not be loaded'));
-    image.src = svgDataUrl(svg);
+    image.src = src;
   });
 }

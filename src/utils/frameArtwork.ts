@@ -1,9 +1,51 @@
-import { FrameTheme, LayoutConfig } from '../types/photobooth';
+import { FrameImageArtwork, FrameTheme, LayoutConfig } from '../types/photobooth';
 
 export interface PhotoWindow { x: number; y: number; width: number; height: number; radius: number }
 
+/** The image frame applies only to the layouts it was designed for; others fall back to a plain frame. */
+export function getImageArtwork(layout: LayoutConfig, theme: FrameTheme): FrameImageArtwork | undefined {
+  return theme.artwork?.layouts.includes(layout.id) ? theme.artwork : undefined;
+}
+
+/** Height of the sky slice that holds `count` photos, in artwork pixels. */
+function artworkMiddle(artwork: FrameImageArtwork, count: number) {
+  return count * artwork.photo.height + (count - 1) * artwork.gap + artwork.padding * 2;
+}
+
+/** Image frames set their own height from the photo count; other frames use the layout canvas. */
+export function getFrameCanvasSize(layout: LayoutConfig, theme: FrameTheme) {
+  const artwork = getImageArtwork(layout, theme);
+  if (!artwork) return { width: layout.canvasWidth, height: layout.canvasHeight };
+  const height = artwork.headerBottom + artworkMiddle(artwork, layout.photoCount) + artwork.height - artwork.footerTop;
+  return { width: layout.canvasWidth, height: Math.round(height * layout.canvasWidth / artwork.width) };
+}
+
+/** Source and destination rows (canvas pixels) for header, cropped middle and footer. */
+export function getArtworkSlices(layout: LayoutConfig, artwork: FrameImageArtwork) {
+  const scale = layout.canvasWidth / artwork.width;
+  const middle = artworkMiddle(artwork, layout.photoCount);
+  const band = artwork.footerTop - artwork.headerBottom;
+  const footer = artwork.height - artwork.footerTop;
+  return [
+    { sy: 0, sh: artwork.headerBottom, dy: 0 },
+    { sy: artwork.headerBottom + (band - middle) / 2, sh: middle, dy: artwork.headerBottom * scale },
+    { sy: artwork.footerTop, sh: footer, dy: (artwork.headerBottom + middle) * scale },
+  ].map(slice => ({ ...slice, dh: slice.sh * scale }));
+}
+
 export function getFrameGeometry(layout: LayoutConfig, theme: FrameTheme) {
   const unit = Math.min(layout.canvasWidth, layout.canvasHeight) / 624;
+  const artwork = getImageArtwork(layout, theme);
+  if (artwork) {
+    const scale = layout.canvasWidth / artwork.width;
+    const { photo, gap } = artwork;
+    const windows: PhotoWindow[] = Array.from({ length: layout.photoCount }, (_, index) => ({
+      x: photo.x * scale,
+      y: (artwork.headerBottom + artwork.padding + index * (photo.height + gap)) * scale,
+      width: photo.width * scale, height: photo.height * scale, radius: 0,
+    }));
+    return { unit, windows };
+  }
   const decorated = Boolean(theme.design);
   const margin = decorated ? 42 * unit : layout.borderWidth;
   const top = decorated ? 104 * unit : layout.borderWidth;
@@ -112,5 +154,5 @@ export function createFrameThumbnail(layout: LayoutConfig, theme: FrameTheme) {
   // Nest the artwork SVGs to retain their normalized coordinate systems.
   const photos = windows.map((photo, index) => `<svg x="${photo.x}" y="${photo.y}" width="${photo.width}" height="${photo.height}" viewBox="0 0 200 150" preserveAspectRatio="xMidYMid slice"><rect width="200" height="150" fill="${['#c6b6b3','#b2bfc0','#c5bca5'][index%3]}"/><circle cx="156" cy="29" r="23" fill="#ffffff30"/><path d="M0 150Q12 93 100 106T220 89V150Z" fill="#ffffff25"/><path d="M45 155Q42 81 100 87Q155 81 160 155" fill="${index%2 ? '#6d6679' : '#ece3d7'}"/><path d="M66 74Q57 10 101 13Q145 9 136 89H64Z" fill="#443b40"/><ellipse cx="100" cy="59" rx="29" ry="36" fill="#e9bb9f"/><path d="M70 48Q66 10 100 13Q133 10 132 47Q102 39 95 27Q87 43 70 48" fill="#443b40"/><circle cx="90" cy="59" r="2" fill="#443b40"/><circle cx="111" cy="59" r="2" fill="#443b40"/><path d="M93 76Q101 82 110 75" fill="none" stroke="#ac6863" stroke-width="2"/></svg>`).join('');
   const footerY = theme.design ? layout.canvasHeight - 53 * (Math.min(layout.canvasWidth, layout.canvasHeight)/624) : layout.canvasHeight - layout.bottomPadding/2;
-  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${layout.canvasWidth}" height="${layout.canvasHeight}" viewBox="0 0 ${layout.canvasWidth} ${layout.canvasHeight}"><rect width="100%" height="100%" fill="${theme.bgValue}"/>${createFrameArtwork(layout,theme,'background')}<defs><clipPath id="photos">${windows.map(p => `<rect x="${p.x}" y="${p.y}" width="${p.width}" height="${p.height}" rx="${p.radius}"/>`).join('')}</clipPath></defs><g clip-path="url(#photos)">${photos}</g>${createFrameArtwork(layout,theme,'overlay')}<text x="${layout.canvasWidth/2}" y="${footerY}" text-anchor="middle" font-family="Arial" font-size="${Math.min(layout.canvasWidth,layout.canvasHeight)*.024}" fill="${theme.textColor}" letter-spacing="2">YOUR MEMORIES</text></svg>`);
+  return svgDataUrl(`<svg xmlns="http://www.w3.org/2000/svg" width="${layout.canvasWidth}" height="${layout.canvasHeight}" viewBox="0 0 ${layout.canvasWidth} ${layout.canvasHeight}"><rect width="100%" height="100%" fill="${theme.bgValue}"/>${createFrameArtwork(layout,theme,'background')}<defs><clipPath id="photos">${windows.map(p => `<rect x="${p.x}" y="${p.y}" width="${p.width}" height="${p.height}" rx="${p.radius}"/>`).join('')}</clipPath></defs><g clip-path="url(#photos)">${photos}</g>${createFrameArtwork(layout,theme,'overlay')}<text x="${layout.canvasWidth/2}" y="${footerY}" text-anchor="middle" font-family="Arial" font-size="${Math.min(layout.canvasWidth,layout.canvasHeight)*.024}" fill="${theme.textColor}" letter-spacing="2">DATA SCIENCE GATHERING 2026</text></svg>`);
 }

@@ -20,6 +20,8 @@ import { FILTERS } from '../config/filters';
 import { FilterEffects } from './FilterEffects';
 import { HeadPhotoOverlay } from './HeadPhotoOverlay';
 import { rotatePhotos, updatePhotoEffects } from '../utils/photoSession';
+import { isStripRatio, planA4Sheet, renderA4Sheet, SheetMode } from '../utils/printSheet';
+import { getFrameCanvasSize } from '../utils/frameArtwork';
 
 interface CustomizeStudioProps {
   layout: LayoutConfig;
@@ -38,10 +40,15 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
 }) => {
   const [currentPhotos, setCurrentPhotos] = useState<CapturedPhoto[]>(photos);
   const [selectedTheme, setSelectedTheme] = useState<FrameTheme>(initialTheme);
+  const frameSize = getFrameCanvasSize(layout, selectedTheme);
+  const isStrip = isStripRatio(frameSize.width / frameSize.height);
+  const [sheetMode, setSheetMode] = useState<SheetMode>('design');
+  const [borderless, setBorderless] = useState(false);
+  const copiesPerSheet = planA4Sheet(frameSize.width, frameSize.height, sheetMode, borderless).items.length;
   const [customHex, setCustomHex] = useState<string>(initialTheme.bgValue);
   const [selectedPhotoId,setSelectedPhotoId]=useState(photos[0]?.id);
   const activePhoto=currentPhotos.find(photo=>photo.id===selectedPhotoId) ?? currentPhotos[0];
-  const [caption, setCaption] = useState<string>('PHOTOBOOTH STUDIO');
+  const [caption, setCaption] = useState<string>('DATA SCIENCE GATHERING 2026');
   const [showDate, setShowDate] = useState<boolean>(true);
   const [showTime, setShowTime] = useState<boolean>(true);
 
@@ -121,35 +128,25 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
     }
   };
 
-  // Print layout directly
+  // Print several copies on one A4 sheet at real size (300 DPI), with cut lines.
   const handlePrint = () => {
-    if (!previewDataUrl) return;
+    const strip = activeCanvasRef.current;
+    if (!strip) return;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
-
+    const sheet = renderA4Sheet(strip, planA4Sheet(strip.width, strip.height, sheetMode, borderless));
     printWindow.document.write(`
       <html>
         <head>
-          <title>Print Photobooth Strip</title>
+          <title>Cetak A4 Photobooth</title>
           <style>
-            @page { margin: 0; }
-            body { 
-              margin: 0; 
-              display: flex; 
-              align-items: center; 
-              justify-content: center; 
-              min-height: 100vh;
-              background: #fff;
-            }
-            img { 
-              max-height: 98vh; 
-              max-width: 98vw; 
-              object-fit: contain; 
-            }
+            @page { size: A4 portrait; margin: 0; }
+            html, body { margin: 0; padding: 0; background: #fff; }
+            img { display: block; width: 210mm; height: 297mm; }
           </style>
         </head>
         <body>
-          <img src="${previewDataUrl}" onload="window.print(); window.close();" />
+          <img src="${sheet.toDataURL('image/png')}" onload="window.print(); window.close();" />
         </body>
       </html>
     `);
@@ -269,8 +266,24 @@ export const CustomizeStudio: React.FC<CustomizeStudioProps> = ({
                 className="disabled:opacity-50 disabled:cursor-wait flex items-center gap-2 px-5 py-3.5 rounded-xl bg-studio-800 hover:bg-studio-700 border border-studio-700 text-studio-strong font-heading font-semibold text-sm transition-colors"
               >
                 <Printer className="w-4 h-4" />
-                <span>Cetak</span>
+                <span>Cetak A4</span>
               </button>
+            </div>
+            <div className="print-sheet-options" role="group" aria-label="Pengaturan cetak A4">
+              {isStrip && (
+                <label>
+                  <span>Susunan A4</span>
+                  <select value={sheetMode} onChange={event => setSheetMode(event.target.value as SheetMode)}>
+                    <option value="design">Seperti desain (5 strip mendatar)</option>
+                    <option value="save">Hemat kertas (8 strip, tanpa sisa)</option>
+                  </select>
+                </label>
+              )}
+              <label className="print-sheet-check">
+                <input type="checkbox" checked={borderless} onChange={event => setBorderless(event.target.checked)} />
+                <span>Printer borderless</span>
+              </label>
+              <small>{copiesPerSheet} salinan per lembar A4 · ukuran asli, potong di garis putus-putus. Di dialog cetak pilih kertas A4, skala 100% (matikan "Fit to page").</small>
             </div>
             <GifExportPanel options={renderOptions} disabled={isRendering || Boolean(renderError)} />
           </div>

@@ -54,6 +54,27 @@ export interface FrameTheme {
   category?: 'Romantic' | 'Playful' | 'Minimal';
   description?: string;
   headline?: string;
+  /** A finished image frame (e.g. exported from Canva) made for one layout. */
+  artwork?: FrameImageArtwork;
+}
+
+/**
+ * A finished image frame stacked from three slices of one image: header, sky middle, footer.
+ * The middle is cropped to fit 2, 3 or 4 photos, so the design is never stretched.
+ * All numbers are in the image's own pixels.
+ */
+export interface FrameImageArtwork {
+  src: string;
+  /** Picker thumbnail (the original design). */
+  preview: string;
+  layouts: LayoutId[];
+  width: number;
+  height: number;
+  headerBottom: number;
+  footerTop: number;
+  photo: { x: number; width: number; height: number };
+  gap: number;
+  padding: number;
 }
 
 export interface CapturedPhoto {

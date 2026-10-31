@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { FrameTheme, LayoutConfig, LayoutId } from '../types/photobooth';
 import { LAYOUTS } from '../config/layouts';
+import { FRAME_THEMES } from '../config/themes';
 import { FramePicker } from './FramePicker';
 import { FrameBadge } from './FrameBadge';
 import { ArrowRight, Check, Camera, Earth, Waypoints, Handshake } from 'lucide-react';
@@ -55,7 +56,7 @@ function StripPreview({ layout }: { layout: LayoutConfig }) {
           </svg>
         </div>
       ))}
-      <span className="layout-paper-caption">PHOTOBOOTH<br /><small>GOOD TIMES, FOREVER.</small></span>
+      <span className="layout-paper-caption">DATA SCIENCE<br /><small>GATHERING 2026</small></span>
     </div>
   );
 }
@@ -94,7 +95,11 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({ selectedLayout, 
           const isSelected = selectedLayout === item.id;
           return (
             <button key={item.id} type="button" className={`layout-card ${isSelected ? 'is-selected' : ''}`}
-              aria-pressed={isSelected} onClick={() => onSelectLayout(item.id)}>
+              aria-pressed={isSelected} onClick={() => {
+                onSelectLayout(item.id);
+                // An image frame only fits its own layout, so drop it rather than print a plain fallback.
+                if (selectedFrame.artwork && !selectedFrame.artwork.layouts.includes(item.id)) onSelectFrame(FRAME_THEMES.find(theme => !theme.artwork)!);
+              }}>
               <div className={`layout-card-art tone-${item.tone}`}>
                 {item.label && <span className="layout-card-badge">{item.label}</span>}
                 <span className={`layout-selection ${isSelected ? 'is-selected' : ''}`} aria-hidden="true">{isSelected && <Check size={14} strokeWidth={3} />}</span>
@@ -113,7 +118,7 @@ export const LayoutSelector: React.FC<LayoutSelectorProps> = ({ selectedLayout, 
       </div>
 
       <div className="layout-frame-collection">
-        <FramePicker layout={activeLayout} selectedTheme={selectedFrame} customHex={customHex}
+        <FramePicker layout={activeLayout} selectedTheme={selectedFrame} customHex={customHex} onSelectLayout={onSelectLayout}
           onSelect={(theme) => { onSelectFrame(theme); setCustomHex(theme.bgValue); }}
           onCustomColor={(color) => {
             setCustomHex(color);

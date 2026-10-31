@@ -1,6 +1,15 @@
 import { FrameTheme } from '../types/photobooth';
+import crossTheWorldPreview from '../assets/frames/cross-the-world.png';
+import crossTheWorldBackground from '../assets/frames/cross-the-world-bg.png';
 
 export const FRAME_THEMES: FrameTheme[] = [
+  { id: 'cross-the-world', tier: 'exclusive', name: 'Cross The World', category: 'Playful',
+    description: 'Frame resmi Data Science Gathering 2026. Untuk strip 2, 3, dan 4 foto.',
+    bgValue: '#4b2bd6', textColor: '#ffffff', accentColor: '#7cc6f0',
+    // Measured on the 399×1202 Canva export; photos bleed 1px past the original boxes.
+    artwork: { src: crossTheWorldBackground, preview: crossTheWorldPreview, layouts: ['strip-2', 'strip-3', 'strip-4'],
+      width: 399, height: 1202, headerBottom: 250, footerTop: 1131,
+      photo: { x: 30, width: 339, height: 203 }, gap: 16, padding: 10 } },
   { id: 'ribbon-diary', tier: 'exclusive', name: 'Ribbon Diary', design: 'ribbon', category: 'Romantic',
     description: 'Pita satin, renda, dan catatan cinta.', headline: 'tied to you',
     bgValue: '#fff3f5', textColor: '#80374c', accentColor: '#c96687' },
