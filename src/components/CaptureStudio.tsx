@@ -92,7 +92,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
     playShutterSound();
     setTimeout(() => setShowFlash(false), 350);
 
-    const frameData = captureFrame(1000, 1250);
+    const frameData = captureFrame();
     if (frameData) {
       const motionReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const effects=effectsRef.current;
@@ -164,7 +164,7 @@ export const CaptureStudio: React.FC<CaptureStudioProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Main Viewfinder (3 cols) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
-          <div className="camera-preview relative aspect-[4/3] sm:aspect-[16/10] bg-studio-900 rounded-3xl overflow-hidden border border-studio-800 shadow-2xl flex items-center justify-center">
+          <div style={videoRef.current?.videoWidth ? { aspectRatio: `${videoRef.current.videoWidth} / ${videoRef.current.videoHeight}` } : undefined} className="camera-preview relative aspect-[4/3] bg-studio-900 rounded-3xl overflow-hidden border border-studio-800 shadow-2xl flex items-center justify-center">
             {/* Live Video */}
             <video
               ref={videoRef}

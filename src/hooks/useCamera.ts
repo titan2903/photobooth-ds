@@ -97,10 +97,12 @@ export function useCamera(options: UseCameraOptions = {}) {
     }
   }, [idealWidth, idealHeight, stopStream, refreshDevices, setZoom]);
 
-  // Capture current video frame to DataURL
-  const captureFrame = useCallback((targetWidth = 1000, targetHeight = 1250): string | null => {
+  // Capture the full camera frame (only zoom crops it); the print layout crops once to its photo window.
+  const captureFrame = useCallback((): string | null => {
     const video = videoRef.current;
-    if (!video || !isReady) return null;
+    if (!video || !isReady || !video.videoWidth || !video.videoHeight) return null;
+    const targetWidth = video.videoWidth;
+    const targetHeight = video.videoHeight;
 
     const canvas = document.createElement('canvas');
     canvas.width = targetWidth;
